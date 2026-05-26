@@ -1,0 +1,13 @@
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.html
+.jexl
+.backup
+.notes
+.claude
+.DS_Store

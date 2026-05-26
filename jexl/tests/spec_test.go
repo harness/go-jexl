@@ -1,0 +1,472 @@
+// Copyright (c) 2026 Harness Inc.
+// Copyright (c) 2018 Anton Medvedev
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
+package tests
+
+import (
+	"encoding/json"
+	"fmt"
+	"math"
+	"os"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/harness/go-jexl/jexl/coerce"
+
+	expr "github.com/harness/go-jexl/jexl"
+	"github.com/harness/go-jexl/jexl/builtin"
+	"github.com/harness/go-jexl/jexl/classes"
+	javalang "github.com/harness/go-jexl/jexl/classes/java/lang"
+	javamath "github.com/harness/go-jexl/jexl/classes/java/math"
+	javautil "github.com/harness/go-jexl/jexl/classes/java/util"
+)
+
+// stringNS is the String namespace used in spec tests.
+type stringNS struct{}
+
+func (stringNS) Call(method string, args ...any) (any, error) {
+	switch method {
+	case "length":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("String.length: expected 1 argument")
+		}
+		return len([]rune(coerce.ToString(args[0]))), nil
+	case "toUpperCase":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("String.toUpperCase: expected 1 argument")
+		}
+		return strings.ToUpper(coerce.ToString(args[0])), nil
+	case "toLowerCase":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("String.toLowerCase: expected 1 argument")
+		}
+		return strings.ToLower(coerce.ToString(args[0])), nil
+	case "trim":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("String.trim: expected 1 argument")
+		}
+		return strings.TrimSpace(coerce.ToString(args[0])), nil
+	case "includes":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("String.includes: expected 2 arguments")
+		}
+		return strings.Contains(coerce.ToString(args[0]), coerce.ToString(args[1])), nil
+	case "startsWith":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("String.startsWith: expected 2 arguments")
+		}
+		return strings.HasPrefix(coerce.ToString(args[0]), coerce.ToString(args[1])), nil
+	case "endsWith":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("String.endsWith: expected 2 arguments")
+		}
+		return strings.HasSuffix(coerce.ToString(args[0]), coerce.ToString(args[1])), nil
+	case "substring":
+		if len(args) < 2 || len(args) > 3 {
+			return nil, fmt.Errorf("String.substring: expected 2 or 3 arguments")
+		}
+		runes := []rune(coerce.ToString(args[0]))
+		from := coerce.ToInt(args[1])
+		to := len(runes)
+		if len(args) == 3 {
+			to = coerce.ToInt(args[2])
+		}
+		if from < 0 || to > len(runes) || from > to {
+			return nil, fmt.Errorf("String.substring: index out of range")
+		}
+		return string(runes[from:to]), nil
+	case "indexOf":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("String.indexOf: expected 2 arguments")
+		}
+		return strings.Index(coerce.ToString(args[0]), coerce.ToString(args[1])), nil
+	case "lastIndexOf":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("String.lastIndexOf: expected 2 arguments")
+		}
+		return strings.LastIndex(coerce.ToString(args[0]), coerce.ToString(args[1])), nil
+	case "replace":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("String.replace: expected 3 arguments")
+		}
+		return strings.ReplaceAll(coerce.ToString(args[0]), coerce.ToString(args[1]), coerce.ToString(args[2])), nil
+	case "repeat":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("String.repeat: expected 2 arguments")
+		}
+		return strings.Repeat(coerce.ToString(args[0]), coerce.ToInt(args[1])), nil
+	case "concat":
+		var b strings.Builder
+		for _, a := range args {
+			b.WriteString(coerce.ToString(a))
+		}
+		return b.String(), nil
+	case "fromCharCode":
+		var b strings.Builder
+		for _, a := range args {
+			b.WriteRune(rune(coerce.ToInt32(a)))
+		}
+		return b.String(), nil
+	case "charCodeAt":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("String.charCodeAt: expected 2 arguments")
+		}
+		runes := []rune(coerce.ToString(args[0]))
+		i := coerce.ToInt(args[1])
+		if i < 0 || i >= len(runes) {
+			return nil, fmt.Errorf("String.charCodeAt: index %d out of range", i)
+		}
+		return int(runes[i]), nil
+	case "padStart":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("String.padStart: expected 3 arguments")
+		}
+		str := coerce.ToString(args[0])
+		target := coerce.ToInt(args[1])
+		pad := coerce.ToString(args[2])
+		runes := []rune(str)
+		padRunes := []rune(pad)
+		if len(runes) > target {
+			return string(runes[len(runes)-target:]), nil
+		}
+		need := target - len(runes)
+		var prefix []rune
+		for len(prefix) < need {
+			prefix = append(prefix, padRunes...)
+		}
+		return string(prefix[:need]) + str, nil
+	case "padEnd":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("String.padEnd: expected 3 arguments")
+		}
+		str := coerce.ToString(args[0])
+		target := coerce.ToInt(args[1])
+		pad := coerce.ToString(args[2])
+		runes := []rune(str)
+		padRunes := []rune(pad)
+		if len(runes) > target {
+			return string(runes[:target]), nil
+		}
+		need := target - len(runes)
+		var suffix []rune
+		for len(suffix) < need {
+			suffix = append(suffix, padRunes...)
+		}
+		return str + string(suffix[:need]), nil
+	}
+	return nil, fmt.Errorf("String.%s: undefined", method)
+}
+
+// integerNS is the Integer namespace used in spec tests.
+type integerNS struct{}
+
+func (integerNS) Call(method string, args ...any) (any, error) {
+	switch method {
+	case "parseInt":
+		switch len(args) {
+		case 1:
+			return coerce.ToInt64(args[0]), nil
+		case 2:
+			n, err := strconv.ParseInt(coerce.ToString(args[0]), coerce.ToInt(args[1]), 64)
+			if err != nil {
+				return nil, fmt.Errorf("Integer.parseInt: %w", err)
+			}
+			return n, nil
+		default:
+			return nil, fmt.Errorf("Integer.parseInt: expected 1 or 2 arguments")
+		}
+	case "parseFloat":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("Integer.parseFloat: expected 1 argument")
+		}
+		return strconv.ParseFloat(strings.TrimSpace(coerce.ToString(args[0])), 64)
+	case "isNaN":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("Integer.isNaN: expected 1 argument")
+		}
+		return math.IsNaN(coerce.ToFloat64(args[0])), nil
+	case "isFinite":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("Integer.isFinite: expected 1 argument")
+		}
+		f := coerce.ToFloat64(args[0])
+		return !math.IsInf(f, 0) && !math.IsNaN(f), nil
+	case "MAX_VALUE", "maxValue":
+		return int64(math.MaxInt32), nil
+	case "MIN_VALUE", "minValue":
+		return int64(math.MinInt32), nil
+	}
+	return nil, fmt.Errorf("Integer.%s: undefined", method)
+}
+
+// pointClass constructs a map with x and y keys.
+type pointClass struct{}
+
+func (pointClass) Call(method string, args ...any) (any, error) {
+	switch method {
+	case "new":
+		m := map[string]any{}
+		if len(args) >= 1 {
+			m["x"] = args[0]
+		}
+		if len(args) >= 2 {
+			m["y"] = args[1]
+		}
+		return m, nil
+	}
+	return nil, fmt.Errorf("Point.%s: undefined", method)
+}
+
+// emptyClass constructs an empty map.
+type emptyClass struct{}
+
+func (emptyClass) Call(method string, args ...any) (any, error) {
+	switch method {
+	case "new":
+		return map[string]any{}, nil
+	}
+	return nil, fmt.Errorf("Empty.%s: undefined", method)
+}
+
+var (
+	// StringNS is the String namespace for spec tests.
+	StringNS classes.Object = stringNS{}
+	// IntegerNS is the Integer namespace for spec tests.
+	IntegerNS classes.Object = integerNS{}
+)
+
+type Test struct {
+	ID          string         `json:"id"`
+	Category    string         `json:"category"`
+	Description string         `json:"description"`
+	Context     map[string]any `json:"context"`
+	Expr        string         `json:"expr"`
+	Result      any            `json:"expected"`
+	Error       string         `json:"error"`
+	Skip        bool           `json:"skip"`
+}
+
+func TestSpec(t *testing.T) {
+
+	data1, err1 := os.ReadFile("./testdata/integration.json")
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+
+	data2, err2 := os.ReadFile("./testdata/synthetic.json")
+	if err2 != nil {
+		t.Fatal(err2)
+	}
+
+	var cases1 []Test
+	if err := json.Unmarshal(data1, &cases1); err != nil {
+		t.Fatal(err)
+	}
+	var cases2 []Test
+	if err := json.Unmarshal(data2, &cases2); err != nil {
+		t.Fatal(err)
+	}
+	cases := append(cases1, cases2...)
+
+	for _, test_ := range cases {
+
+		t.Run(test_.ID, func(t *testing.T) {
+
+			if test_.Skip {
+				t.Skip()
+				return
+			}
+
+			opts := []expr.Option{
+				expr.WithClass("Point", pointClass{}),
+				expr.WithClass("org.apache.commons.jexl3.ConformanceTest$Point", pointClass{}),
+				expr.WithClass("Empty", emptyClass{}),
+				expr.WithClass("org.apache.commons.jexl3.ConformanceTest$Empty", emptyClass{}),
+				expr.WithClass("java.lang.Boolean", javalang.BooleanClass),
+				expr.WithClass("java.lang.Byte", javalang.ByteClass),
+				expr.WithClass("java.lang.Short", javalang.ShortClass),
+				expr.WithClass("java.lang.Integer", javalang.IntegerClass),
+				expr.WithClass("java.lang.Long", javalang.LongClass),
+				expr.WithClass("java.lang.Double", javalang.DoubleClass),
+				expr.WithClass("java.lang.Character", javalang.CharacterClass),
+				expr.WithClass("java.lang.String", javalang.StringClass),
+				expr.WithClass("java.lang.StringBuilder", javalang.StringBuilderClass),
+				expr.WithClass("java.lang.StringBuffer", javalang.StringBufferClass),
+				expr.WithClass("java.lang.Math", javamath.MathClass),
+				expr.WithClass("java.math.BigInteger", javamath.BigIntegerClass),
+				expr.WithClass("java.math.BigDecimal", javamath.BigDecimalClass),
+				expr.WithClass("java.util.ArrayList", javautil.ArrayListClass),
+				expr.WithClass("java.util.LinkedList", javautil.LinkedListClass),
+				expr.WithClass("java.util.HashMap", javautil.HashMapClass),
+				expr.WithClass("java.util.TreeMap", javautil.TreeMapClass),
+				expr.WithClass("java.util.Stack", javautil.StackClass),
+				expr.WithNamespace("String", StringNS),
+				expr.WithNamespace("Integer", IntegerNS),
+				expr.WithNamespace("Math", javamath.MathClass),
+			}
+
+			c := test_.Context
+			if c == nil {
+				c = map[string]any{}
+			}
+
+			// add common functions to context
+			c["secrets"] = map[string]any{
+				"getValue": func(args ...any) (any, error) {
+					return "dummy-23e4567-e89b-12d3-a456-426614174000", nil
+				},
+			}
+			c["json"] = map[string]any{
+				"format": func(args ...any) (any, error) {
+					if len(args) != 1 {
+						return nil, fmt.Errorf("json.format: expected 1 argument")
+					}
+					return builtin.JSONMarshal(args[0])
+				},
+				"stringify": func(args ...any) (any, error) {
+					if len(args) != 1 {
+						return nil, fmt.Errorf("json.stringify: expected 1 argument")
+					}
+					return builtin.JSONMarshal(args[0])
+				},
+				"object": func(args ...any) (any, error) {
+					if len(args) != 1 {
+						return nil, fmt.Errorf("json.object: expected 1 argument")
+					}
+					return builtin.JSONUnmarshal(args[0])
+				},
+				"select": func(args ...any) (any, error) {
+					if len(args) != 2 {
+						return nil, fmt.Errorf("json.select: expected 2 arguments")
+					}
+					return builtin.JSONSelect(args[0], args[1])
+				},
+				"list": func(args ...any) (any, error) {
+					if len(args) != 2 {
+						return nil, fmt.Errorf("json.list: expected 2 arguments")
+					}
+					return builtin.JSONList(args[0], args[1])
+				},
+			}
+			c["regex"] = map[string]any{
+				"extract": func(args ...any) (any, error) {
+					if len(args) != 2 {
+						return nil, fmt.Errorf("regex.extract: expected 2 arguments")
+					}
+					return builtin.RegexExtract(args[0], args[1]), nil
+				},
+				"replace": func(args ...any) (any, error) {
+					if len(args) != 3 {
+						return nil, fmt.Errorf("regex.replace: expected 3 arguments")
+					}
+					return builtin.ReplaceAll(args[2], args[0], args[1]), nil
+				},
+				"match": func(args ...any) (any, error) {
+					if len(args) != 2 {
+						return nil, fmt.Errorf("regex.match: expected 2 arguments")
+					}
+					return builtin.Matches(args[1], args[0]), nil
+				},
+			}
+			c["datetime"] = map[string]any{
+				"currentDate": func(args ...any) (any, error) {
+					return builtin.CurrentDate(), nil
+				},
+				"currentTime": func(args ...any) (any, error) {
+					return builtin.CurrentTime(), nil
+				},
+				"format": func(args ...any) (any, error) {
+					if len(args) != 2 {
+						return nil, fmt.Errorf("datetime.format: expected 2 arguments")
+					}
+					return builtin.DateFormat(args[1], args[0]), nil
+				},
+				"plusMinutes": func(args ...any) (any, error) {
+					if len(args) != 2 {
+						return nil, fmt.Errorf("datetime.plusMinutes: expected 2 arguments")
+					}
+					return builtin.PlusMinutes(args[0], args[1]), nil
+				},
+			}
+			c["xml"] = map[string]any{
+				"select": func(args ...any) (any, error) {
+					if len(args) != 2 {
+						return nil, fmt.Errorf("xml.select: expected 2 arguments")
+					}
+					return builtin.XMLSelect(args[0], args[1])
+				},
+			}
+			c["base64"] = map[string]any{
+				"encode": func(args ...any) (any, error) {
+					if len(args) != 1 {
+						return nil, fmt.Errorf("base64.encode: expected 1 argument")
+					}
+					return builtin.Base64Encode(args[0]), nil
+				},
+				"decode": func(args ...any) (any, error) {
+					if len(args) != 1 {
+						return nil, fmt.Errorf("base64.decode: expected 1 argument")
+					}
+					return builtin.Base64Decode(args[0])
+				},
+			}
+
+			// add context to options
+			opts = append(opts, expr.WithContext(test_.Context))
+
+			program, err := expr.Compile(test_.Expr, opts...)
+			if err != nil {
+				if test_.Error == "" {
+					t.Error(err)
+					t.Logf("name: %s", test_.ID)
+					t.Logf("category: %s", test_.Category)
+					t.Logf("description: %s", test_.Description)
+					t.Logf("expression: %v", test_.Expr)
+					return
+				} else {
+					return // expect error
+				}
+			}
+
+			out, err := expr.Run(program, test_.Context)
+			if err != nil {
+				if test_.Error == "" {
+					t.Error(err)
+					t.Logf("name: %s", test_.ID)
+					t.Logf("category: %s", test_.Category)
+					t.Logf("description: %s", test_.Description)
+					t.Logf("expression: %v", test_.Expr)
+					return
+				} else {
+					return // expect error
+				}
+			}
+
+			if test_.Error != "" {
+				t.Errorf("Expect error got %v", out)
+				t.Logf("name: %s", test_.ID)
+				t.Logf("category: %s", test_.Category)
+				t.Logf("description: %s", test_.Description)
+				t.Logf("expression: %v", test_.Expr)
+				return
+			}
+
+			// ensure equality
+			if !coerce.DeepEqual(test_.Result, out) {
+				t.Errorf("Unexpected result")
+				t.Logf("name: %s", test_.ID)
+				t.Logf("category: %s", test_.Category)
+				t.Logf("description: %s", test_.Description)
+				t.Logf("expression: %v", test_.Expr)
+				t.Logf("got: %v", out)
+				t.Logf("want: %v", test_.Result)
+				return
+			}
+
+		})
+	}
+
+}

@@ -1,0 +1,1618 @@
+[
+    {
+        "id": "harness-pipeline-name-001",
+        "category": "harness-variable",
+        "expr": "pipeline.name",
+        "context": {
+            "pipeline": {
+                "name": "my-pipeline"
+            }
+        },
+        "expected": "my-pipeline",
+        "description": "pipeline.name namespace variable access"
+    },
+    {
+        "id": "harness-pipeline-identifier-001",
+        "category": "harness-variable",
+        "expr": "pipeline.identifier",
+        "context": {
+            "pipeline": {
+                "identifier": "myPipeline"
+            }
+        },
+        "expected": "myPipeline",
+        "description": "pipeline.identifier namespace variable access"
+    },
+    {
+        "id": "harness-pipeline-sequenceid-001",
+        "category": "harness-variable",
+        "expr": "pipeline.sequenceId",
+        "context": {
+            "pipeline": {
+                "sequenceId": "42"
+            }
+        },
+        "expected": "42",
+        "description": "pipeline.sequenceId access"
+    },
+    {
+        "id": "harness-pipeline-executionurl-001",
+        "category": "harness-variable",
+        "expr": "pipeline.executionUrl",
+        "context": {
+            "pipeline": {
+                "executionUrl": "https://app.harness.io/pipelines/123"
+            }
+        },
+        "expected": "https://app.harness.io/pipelines/123",
+        "description": "pipeline.executionUrl access"
+    },
+    {
+        "id": "harness-pipeline-triggeredby-email-001",
+        "category": "harness-variable",
+        "expr": "pipeline.triggeredBy.email",
+        "context": {
+            "pipeline": {
+                "triggeredBy": {
+                    "email": "user@example.com"
+                }
+            }
+        },
+        "expected": "user@example.com",
+        "description": "pipeline.triggeredBy.email nested property access"
+    },
+    {
+        "id": "harness-pipeline-triggeredby-name-001",
+        "category": "harness-variable",
+        "expr": "pipeline.triggeredBy.name",
+        "context": {
+            "pipeline": {
+                "triggeredBy": {
+                    "name": "John Doe"
+                }
+            }
+        },
+        "expected": "John Doe",
+        "description": "pipeline.triggeredBy.name nested property access"
+    },
+    {
+        "id": "harness-pipeline-variables-env-001",
+        "category": "harness-variable",
+        "expr": "pipeline.variables.environment",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "environment": "production"
+                }
+            }
+        },
+        "expected": "production",
+        "description": "pipeline.variables.environment access"
+    },
+    {
+        "id": "harness-pipeline-variables-branch-001",
+        "category": "harness-variable",
+        "expr": "pipeline.variables.branch",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "branch": "main"
+                }
+            }
+        },
+        "expected": "main",
+        "description": "pipeline.variables.branch access"
+    },
+    {
+        "id": "harness-pipeline-variables-image-tag-001",
+        "category": "harness-variable",
+        "expr": "pipeline.variables.image_tag",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "image_tag": "v1.2.3"
+                }
+            }
+        },
+        "expected": "v1.2.3",
+        "description": "pipeline.variables.image_tag access"
+    },
+    {
+        "id": "harness-pipeline-properties-codebase-branch-001",
+        "category": "harness-variable",
+        "expr": "pipeline.properties.ci.codebase.branch",
+        "context": {
+            "pipeline": {
+                "properties": {
+                    "ci": {
+                        "codebase": {
+                            "branch": "feature/my-feature"
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "feature/my-feature",
+        "description": "pipeline.properties.ci.codebase.branch deep nesting"
+    },
+    {
+        "id": "harness-stage-name-001",
+        "category": "harness-variable",
+        "expr": "stage.name",
+        "context": {
+            "stage": {
+                "name": "Build Stage"
+            }
+        },
+        "expected": "Build Stage",
+        "description": "stage.name access"
+    },
+    {
+        "id": "harness-stage-identifier-001",
+        "category": "harness-variable",
+        "expr": "stage.identifier",
+        "context": {
+            "stage": {
+                "identifier": "buildStage"
+            }
+        },
+        "expected": "buildStage",
+        "description": "stage.identifier access"
+    },
+    {
+        "id": "harness-stage-variables-001",
+        "category": "harness-variable",
+        "expr": "stage.variables.image_tag",
+        "context": {
+            "stage": {
+                "variables": {
+                    "image_tag": "sha-abc123"
+                }
+            }
+        },
+        "expected": "sha-abc123",
+        "description": "stage.variables.image_tag access"
+    },
+    {
+        "id": "harness-stage-variables-namespace-001",
+        "category": "harness-variable",
+        "expr": "stage.variables.namespace",
+        "context": {
+            "stage": {
+                "variables": {
+                    "namespace": "my-namespace"
+                }
+            }
+        },
+        "expected": "my-namespace",
+        "description": "stage.variables.namespace access"
+    },
+    {
+        "id": "harness-stage-output-hosts-001",
+        "category": "harness-variable",
+        "expr": "stage.output.hosts",
+        "context": {
+            "stage": {
+                "output": {
+                    "hosts": "host1.example.com"
+                }
+            }
+        },
+        "expected": "host1.example.com",
+        "description": "stage.output.hosts access"
+    },
+    {
+        "id": "harness-stage-output-hosts-array-001",
+        "category": "harness-variable",
+        "expr": "stage.output.hosts[0]",
+        "context": {
+            "stage": {
+                "output": {
+                    "hosts": ["host1.example.com", "host2.example.com"]
+                }
+            }
+        },
+        "expected": "host1.example.com",
+        "description": "stage.output.hosts[0] array index access"
+    },
+    {
+        "id": "harness-trigger-type-001",
+        "category": "harness-variable",
+        "expr": "trigger.type",
+        "context": {
+            "trigger": {
+                "type": "WEBHOOK"
+            }
+        },
+        "expected": "WEBHOOK",
+        "description": "trigger.type access"
+    },
+    {
+        "id": "harness-trigger-branch-001",
+        "category": "harness-variable",
+        "expr": "trigger.branch",
+        "context": {
+            "trigger": {
+                "branch": "main"
+            }
+        },
+        "expected": "main",
+        "description": "trigger.branch access"
+    },
+    {
+        "id": "harness-trigger-source-branch-001",
+        "category": "harness-variable",
+        "expr": "trigger.sourceBranch",
+        "context": {
+            "trigger": {
+                "sourceBranch": "feature/new-feature"
+            }
+        },
+        "expected": "feature/new-feature",
+        "description": "trigger.sourceBranch access"
+    },
+    {
+        "id": "harness-trigger-target-branch-001",
+        "category": "harness-variable",
+        "expr": "trigger.targetBranch",
+        "context": {
+            "trigger": {
+                "targetBranch": "main"
+            }
+        },
+        "expected": "main",
+        "description": "trigger.targetBranch access"
+    },
+    {
+        "id": "harness-trigger-commit-sha-001",
+        "category": "harness-variable",
+        "expr": "trigger.commitSha",
+        "context": {
+            "trigger": {
+                "commitSha": "abc123def456"
+            }
+        },
+        "expected": "abc123def456",
+        "description": "trigger.commitSha access"
+    },
+    {
+        "id": "harness-trigger-tag-001",
+        "category": "harness-variable",
+        "expr": "trigger.tag",
+        "context": {
+            "trigger": {
+                "tag": "v2.0.0"
+            }
+        },
+        "expected": "v2.0.0",
+        "description": "trigger.tag access"
+    },
+    {
+        "id": "harness-trigger-pr-number-001",
+        "category": "harness-variable",
+        "expr": "trigger.prNumber",
+        "context": {
+            "trigger": {
+                "prNumber": "42"
+            }
+        },
+        "expected": "42",
+        "description": "trigger.prNumber access"
+    },
+    {
+        "id": "harness-trigger-repo-url-001",
+        "category": "harness-variable",
+        "expr": "trigger.repoUrl",
+        "context": {
+            "trigger": {
+                "repoUrl": "https://github.com/org/repo"
+            }
+        },
+        "expected": "https://github.com/org/repo",
+        "description": "trigger.repoUrl access"
+    },
+    {
+        "id": "harness-trigger-git-user-001",
+        "category": "harness-variable",
+        "expr": "trigger.gitUser",
+        "context": {
+            "trigger": {
+                "gitUser": "octocat"
+            }
+        },
+        "expected": "octocat",
+        "description": "trigger.gitUser access"
+    },
+    {
+        "id": "harness-trigger-payload-deep-001",
+        "category": "harness-variable",
+        "expr": "trigger.payload.repository.full_name",
+        "context": {
+            "trigger": {
+                "payload": {
+                    "repository": {
+                        "full_name": "org/repo"
+                    }
+                }
+            }
+        },
+        "expected": "org/repo",
+        "description": "trigger.payload.repository.full_name deep access"
+    },
+    {
+        "id": "harness-trigger-payload-pr-sha-001",
+        "category": "harness-variable",
+        "expr": "trigger.payload.pull_request.head.sha",
+        "context": {
+            "trigger": {
+                "payload": {
+                    "pull_request": {
+                        "head": {
+                            "sha": "deadbeef"
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "deadbeef",
+        "description": "trigger.payload.pull_request.head.sha deep access"
+    },
+    {
+        "id": "harness-env-name-001",
+        "category": "harness-variable",
+        "expr": "env.name",
+        "context": {
+            "env": {
+                "name": "production"
+            }
+        },
+        "expected": "production",
+        "description": "env.name access"
+    },
+    {
+        "id": "harness-env-identifier-001",
+        "category": "harness-variable",
+        "expr": "env.identifier",
+        "context": {
+            "env": {
+                "identifier": "prod"
+            }
+        },
+        "expected": "prod",
+        "description": "env.identifier access"
+    },
+    {
+        "id": "harness-env-variables-001",
+        "category": "harness-variable",
+        "expr": "env.variables.key",
+        "context": {
+            "env": {
+                "variables": {
+                    "key": "some-value"
+                }
+            }
+        },
+        "expected": "some-value",
+        "description": "env.variables.key access"
+    },
+    {
+        "id": "harness-artifact-image-001",
+        "category": "harness-variable",
+        "expr": "artifact.image",
+        "context": {
+            "artifact": {
+                "image": "nginx"
+            }
+        },
+        "expected": "nginx",
+        "description": "artifact.image access"
+    },
+    {
+        "id": "harness-artifact-tag-001",
+        "category": "harness-variable",
+        "expr": "artifact.tag",
+        "context": {
+            "artifact": {
+                "tag": "1.21.0"
+            }
+        },
+        "expected": "1.21.0",
+        "description": "artifact.tag access"
+    },
+    {
+        "id": "harness-artifact-image-path-001",
+        "category": "harness-variable",
+        "expr": "artifact.imagePath",
+        "context": {
+            "artifact": {
+                "imagePath": "docker.io/library/nginx"
+            }
+        },
+        "expected": "docker.io/library/nginx",
+        "description": "artifact.imagePath access"
+    },
+    {
+        "id": "harness-artifact-metadata-sha-001",
+        "category": "harness-variable",
+        "expr": "artifact.metadata.SHA",
+        "context": {
+            "artifact": {
+                "metadata": {
+                    "SHA": "sha256:abc123"
+                }
+            }
+        },
+        "expected": "sha256:abc123",
+        "description": "artifact.metadata.SHA access"
+    },
+    {
+        "id": "harness-artifacts-primary-image-001",
+        "category": "harness-variable",
+        "expr": "artifacts.primary.image",
+        "context": {
+            "artifacts": {
+                "primary": {
+                    "image": "my-app"
+                }
+            }
+        },
+        "expected": "my-app",
+        "description": "artifacts.primary.image access"
+    },
+    {
+        "id": "harness-artifacts-primary-tag-001",
+        "category": "harness-variable",
+        "expr": "artifacts.primary.tag",
+        "context": {
+            "artifacts": {
+                "primary": {
+                    "tag": "latest"
+                }
+            }
+        },
+        "expected": "latest",
+        "description": "artifacts.primary.tag access"
+    },
+    {
+        "id": "harness-artifacts-primary-metadata-sha-001",
+        "category": "harness-variable",
+        "expr": "artifacts.primary.metadata.SHA",
+        "context": {
+            "artifacts": {
+                "primary": {
+                    "metadata": {
+                        "SHA": "sha256:deadbeef"
+                    }
+                }
+            }
+        },
+        "expected": "sha256:deadbeef",
+        "description": "artifacts.primary.metadata.SHA deep access"
+    },
+    {
+        "id": "harness-service-name-001",
+        "category": "harness-variable",
+        "expr": "service.name",
+        "context": {
+            "service": {
+                "name": "my-service"
+            }
+        },
+        "expected": "my-service",
+        "description": "service.name access"
+    },
+    {
+        "id": "harness-service-identifier-001",
+        "category": "harness-variable",
+        "expr": "service.identifier",
+        "context": {
+            "service": {
+                "identifier": "myService"
+            }
+        },
+        "expected": "myService",
+        "description": "service.identifier access"
+    },
+    {
+        "id": "harness-infra-namespace-001",
+        "category": "harness-variable",
+        "expr": "infra.namespace",
+        "context": {
+            "infra": {
+                "namespace": "default"
+            }
+        },
+        "expected": "default",
+        "description": "infra.namespace access"
+    },
+    {
+        "id": "harness-infra-releasename-001",
+        "category": "harness-variable",
+        "expr": "infra.releaseName",
+        "context": {
+            "infra": {
+                "releaseName": "my-release"
+            }
+        },
+        "expected": "my-release",
+        "description": "infra.releaseName access"
+    },
+    {
+        "id": "harness-infra-connectorref-001",
+        "category": "harness-variable",
+        "expr": "infra.connectorRef",
+        "context": {
+            "infra": {
+                "connectorRef": "k8sConnector"
+            }
+        },
+        "expected": "k8sConnector",
+        "description": "infra.connectorRef access"
+    },
+    {
+        "id": "harness-strategy-iteration-001",
+        "category": "harness-variable",
+        "expr": "strategy.iteration",
+        "context": {
+            "strategy": {
+                "iteration": 2
+            }
+        },
+        "expected": 2,
+        "description": "strategy.iteration access"
+    },
+    {
+        "id": "harness-strategy-iterations-001",
+        "category": "harness-variable",
+        "expr": "strategy.iterations",
+        "context": {
+            "strategy": {
+                "iterations": 5
+            }
+        },
+        "expected": 5,
+        "description": "strategy.iterations access"
+    },
+    {
+        "id": "harness-strategy-matrix-001",
+        "category": "harness-variable",
+        "expr": "strategy.matrix.version",
+        "context": {
+            "strategy": {
+                "matrix": {
+                    "version": "1.18"
+                }
+            }
+        },
+        "expected": "1.18",
+        "description": "strategy.matrix.version access"
+    },
+    {
+        "id": "harness-repeat-item-001",
+        "category": "harness-variable",
+        "expr": "repeat.item",
+        "context": {
+            "repeat": {
+                "item": "host1"
+            }
+        },
+        "expected": "host1",
+        "description": "repeat.item access"
+    },
+    {
+        "id": "harness-repeat-partition-001",
+        "category": "harness-variable",
+        "expr": "repeat.partition",
+        "context": {
+            "repeat": {
+                "partition": 0
+            }
+        },
+        "expected": 0,
+        "description": "repeat.partition access"
+    },
+    {
+        "id": "harness-stepgroup-identifier-001",
+        "category": "harness-variable",
+        "expr": "stepGroup.identifier",
+        "context": {
+            "stepGroup": {
+                "identifier": "myStepGroup"
+            }
+        },
+        "expected": "myStepGroup",
+        "description": "stepGroup.identifier access"
+    },
+    {
+        "id": "harness-stepgroup-output-001",
+        "category": "harness-variable",
+        "expr": "stepGroup.output.outputVariables.result",
+        "context": {
+            "stepGroup": {
+                "output": {
+                    "outputVariables": {
+                        "result": "success"
+                    }
+                }
+            }
+        },
+        "expected": "success",
+        "description": "stepGroup.output.outputVariables.result deep access"
+    },
+    {
+        "id": "harness-approval-email-001",
+        "category": "harness-variable",
+        "expr": "approval.approvalActivities[0].user.email",
+        "context": {
+            "approval": {
+                "approvalActivities": [
+                    {
+                        "user": {
+                            "email": "approver@example.com"
+                        }
+                    }
+                ]
+            }
+        },
+        "expected": "approver@example.com",
+        "description": "approval.approvalActivities[0].user.email array + deep access"
+    },
+    {
+        "id": "harness-account-identifier-001",
+        "category": "harness-variable",
+        "expr": "account.identifier",
+        "context": {
+            "account": {
+                "identifier": "myAccount"
+            }
+        },
+        "expected": "myAccount",
+        "description": "account.identifier access"
+    },
+    {
+        "id": "harness-execution-steps-output-001",
+        "category": "harness-variable",
+        "expr": "execution.steps.Build.output.outputVariables.DOCKER_TAG",
+        "context": {
+            "execution": {
+                "steps": {
+                    "Build": {
+                        "output": {
+                            "outputVariables": {
+                                "DOCKER_TAG": "sha-abc123"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "sha-abc123",
+        "description": "execution.steps.Build.output.outputVariables.DOCKER_TAG deep access"
+    },
+    {
+        "id": "harness-execution-mode-001",
+        "category": "harness-variable",
+        "expr": "execution.mode",
+        "context": {
+            "execution": {
+                "mode": "PIPELINE"
+            }
+        },
+        "expected": "PIPELINE",
+        "description": "execution.mode access"
+    },
+    {
+        "id": "harness-input-key-001",
+        "category": "harness-variable",
+        "expr": "input.key",
+        "context": {
+            "input": {
+                "key": "myInput"
+            }
+        },
+        "expected": "myInput",
+        "description": "input.key access"
+    },
+    {
+        "id": "harness-string-concat-namespace-001",
+        "category": "harness-expression",
+        "expr": "stage.variables.namespace + '-' + pipeline.variables.environment",
+        "context": {
+            "stage": {
+                "variables": {
+                    "namespace": "my-app"
+                }
+            },
+            "pipeline": {
+                "variables": {
+                    "environment": "prod"
+                }
+            }
+        },
+        "expected": "my-app-prod",
+        "description": "concatenate stage namespace and pipeline environment"
+    },
+    {
+        "id": "harness-string-concat-image-tag-001",
+        "category": "harness-expression",
+        "expr": "artifacts.primary.image + ':' + artifacts.primary.tag",
+        "context": {
+            "artifacts": {
+                "primary": {
+                    "image": "my-app",
+                    "tag": "v1.0.0"
+                }
+            }
+        },
+        "expected": "my-app:v1.0.0",
+        "description": "concatenate image and tag with colon separator"
+    },
+    {
+        "id": "harness-string-concat-url-001",
+        "category": "harness-expression",
+        "expr": "env.variables.API_URL + '/v1/deploy'",
+        "context": {
+            "env": {
+                "variables": {
+                    "API_URL": "https://api.example.com"
+                }
+            }
+        },
+        "expected": "https://api.example.com/v1/deploy",
+        "description": "concatenate env variable with path suffix"
+    },
+    {
+        "id": "harness-method-tolowercase-pipeline-001",
+        "category": "harness-expression",
+        "expr": "pipeline.triggeredBy.email.toLowerCase()",
+        "context": {
+            "pipeline": {
+                "triggeredBy": {
+                    "email": "User@Example.COM"
+                }
+            }
+        },
+        "expected": "user@example.com",
+        "description": "toLowerCase() on pipeline.triggeredBy.email"
+    },
+    {
+        "id": "harness-method-substring-trigger-001",
+        "category": "harness-expression",
+        "expr": "trigger.branch.substring(0, 10)",
+        "context": {
+            "trigger": {
+                "branch": "feature/my-very-long-branch-name"
+            }
+        },
+        "expected": "feature/my",
+        "description": "substring(0,10) on trigger.branch"
+    },
+    {
+        "id": "harness-method-trim-stage-001",
+        "category": "harness-expression",
+        "expr": "stage.variables.image_tag.trim()",
+        "context": {
+            "stage": {
+                "variables": {
+                    "image_tag": "  v1.2.3  "
+                }
+            }
+        },
+        "expected": "v1.2.3",
+        "description": "trim() on stage variable"
+    },
+    {
+        "id": "harness-method-touppercase-pipeline-001",
+        "category": "harness-expression",
+        "expr": "pipeline.variables.environment.toUpperCase()",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "environment": "production"
+                }
+            }
+        },
+        "expected": "PRODUCTION",
+        "description": "toUpperCase() on pipeline variable"
+    },
+    {
+        "id": "harness-method-chained-substring-lowercase-001",
+        "category": "harness-expression",
+        "expr": "stage.variables.IMAGE_TAG.substring(0, 8).toLowerCase()",
+        "context": {
+            "stage": {
+                "variables": {
+                    "IMAGE_TAG": "SHA256ABCDEF1234"
+                }
+            }
+        },
+        "expected": "sha256ab",
+        "description": "chained substring then toLowerCase on stage variable"
+    },
+    {
+        "id": "harness-method-sha-short-001",
+        "category": "harness-expression",
+        "expr": "artifacts.primary.metadata.SHA.substring(0, 7)",
+        "context": {
+            "artifacts": {
+                "primary": {
+                    "metadata": {
+                        "SHA": "abcdef1234567890"
+                    }
+                }
+            }
+        },
+        "expected": "abcdef1",
+        "description": "substring(0,7) on artifacts SHA for short hash"
+    },
+    {
+        "id": "harness-ternary-trigger-branch-001",
+        "category": "harness-expression",
+        "expr": "trigger.type == 'WEBHOOK' ? trigger.branch : 'main'",
+        "context": {
+            "trigger": {
+                "type": "WEBHOOK",
+                "branch": "feature/xyz"
+            }
+        },
+        "expected": "feature/xyz",
+        "description": "ternary selects trigger.branch when type is WEBHOOK"
+    },
+    {
+        "id": "harness-ternary-trigger-branch-fallback-001",
+        "category": "harness-expression",
+        "expr": "trigger.type == 'WEBHOOK' ? trigger.branch : 'main'",
+        "context": {
+            "trigger": {
+                "type": "MANUAL",
+                "branch": "feature/xyz"
+            }
+        },
+        "expected": "main",
+        "description": "ternary falls back to 'main' when trigger type is not WEBHOOK"
+    },
+    {
+        "id": "harness-ternary-null-check-email-001",
+        "category": "harness-expression",
+        "expr": "pipeline.triggeredBy.email != null ? pipeline.triggeredBy.email : pipeline.triggeredBy.name",
+        "context": {
+            "pipeline": {
+                "triggeredBy": {
+                    "email": "user@example.com",
+                    "name": "User"
+                }
+            }
+        },
+        "expected": "user@example.com",
+        "description": "ternary null check prefers email over name"
+    },
+    {
+        "id": "harness-ternary-null-fallback-name-001",
+        "category": "harness-expression",
+        "expr": "pipeline.triggeredBy.email != null ? pipeline.triggeredBy.email : pipeline.triggeredBy.name",
+        "context": {
+            "pipeline": {
+                "triggeredBy": {
+                    "email": null,
+                    "name": "User Name"
+                }
+            }
+        },
+        "expected": "User Name",
+        "description": "ternary falls back to name when email is null"
+    },
+    {
+        "id": "harness-compare-enabled-true-001",
+        "category": "harness-expression",
+        "expr": "pipeline.variables.enabled == 'true'",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "enabled": "true"
+                }
+            }
+        },
+        "expected": true,
+        "description": "equality comparison of pipeline variable to string 'true'"
+    },
+    {
+        "id": "harness-compare-trigger-not-manual-001",
+        "category": "harness-expression",
+        "expr": "trigger.type != 'MANUAL'",
+        "context": {
+            "trigger": {
+                "type": "WEBHOOK"
+            }
+        },
+        "expected": true,
+        "description": "inequality check trigger.type != MANUAL"
+    },
+    {
+        "id": "harness-compare-count-gt-zero-001",
+        "category": "harness-expression",
+        "expr": "stage.variables.count > 0",
+        "context": {
+            "stage": {
+                "variables": {
+                    "count": 3
+                }
+            }
+        },
+        "expected": true,
+        "description": "stage.variables.count > 0 comparison"
+    },
+    {
+        "id": "harness-logical-and-001",
+        "category": "harness-expression",
+        "expr": "pipeline.variables.deploy && stage.variables.enabled",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "deploy": true
+                }
+            },
+            "stage": {
+                "variables": {
+                    "enabled": true
+                }
+            }
+        },
+        "expected": true,
+        "description": "logical AND of two pipeline/stage variables"
+    },
+    {
+        "id": "harness-logical-and-false-001",
+        "category": "harness-expression",
+        "expr": "pipeline.variables.deploy && stage.variables.enabled",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "deploy": false
+                }
+            },
+            "stage": {
+                "variables": {
+                    "enabled": true
+                }
+            }
+        },
+        "expected": false,
+        "description": "logical AND short-circuits when first operand is false"
+    },
+    {
+        "id": "harness-logical-not-empty-tag-001",
+        "category": "harness-expression",
+        "expr": "!empty(pipeline.variables.tag)",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "tag": "v1.0.0"
+                }
+            }
+        },
+        "expected": true,
+        "description": "!empty() when tag has a value"
+    },
+    {
+        "id": "harness-logical-not-empty-tag-false-001",
+        "category": "harness-expression",
+        "expr": "!empty(pipeline.variables.tag)",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "tag": ""
+                }
+            }
+        },
+        "expected": false,
+        "description": "!empty() returns false when tag is empty string"
+    },
+    {
+        "id": "harness-functor-default-with-value-001",
+        "category": "harness-functor",
+        "expr": "default(pipeline.variables.region, 'us-east-1')",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "region": "eu-west-1"
+                }
+            }
+        },
+        "expected": "eu-west-1",
+        "description": "default() returns value when not null"
+    },
+    {
+        "id": "harness-functor-default-null-001",
+        "category": "harness-functor",
+        "expr": "default(pipeline.variables.region, 'us-east-1')",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "region": null
+                }
+            }
+        },
+        "expected": "us-east-1",
+        "description": "default() returns fallback when value is null"
+    },
+    {
+        "id": "harness-functor-empty-string-001",
+        "category": "harness-functor",
+        "expr": "empty(stage.variables.skip_deploy)",
+        "context": {
+            "stage": {
+                "variables": {
+                    "skip_deploy": ""
+                }
+            }
+        },
+        "expected": true,
+        "description": "empty() returns true when variable is empty string"
+    },
+    {
+        "id": "harness-functor-empty-nonempty-001",
+        "category": "harness-functor",
+        "expr": "empty(stage.variables.skip_deploy)",
+        "context": {
+            "stage": {
+                "variables": {
+                    "skip_deploy": "true"
+                }
+            }
+        },
+        "expected": false,
+        "description": "empty() returns false when variable has a value"
+    },
+    {
+        "id": "harness-functor-secrets-getvalue-001",
+        "category": "harness-functor",
+        "expr": "secrets.getValue('account.token')",
+        "context": {
+            "secrets": {
+                "getValue": null
+            }
+        },
+        "expected": "dummy-23e4567-e89b-12d3-a456-426614174000",
+        "description": "secrets.getValue returns null when not resolvable in context"
+    },
+    {
+        "id": "harness-functor-json-format-001",
+        "category": "harness-functor",
+        "expr": "json.format(pipeline.variables)",
+        "expected": "{\"env\":\"prod\"}",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "env": "prod"
+                }
+            }
+        },
+        "description": "json.format converts object to JSON string"
+    },
+    {
+        "id": "harness-functor-json-select-001",
+        "category": "harness-functor",
+        "expr": "json.select('$.name', jsonString)",
+        "context": {
+            "jsonString": "{\"name\": \"alice\"}"
+        },
+        "expected": "alice",
+        "description": "json.select extracts value using JSONPath"
+    },
+    {
+        "id": "harness-functor-regex-extract-001",
+        "category": "harness-functor",
+        "expr": "regex.extract('v(\\\\d+\\\\.\\\\d+)', trigger.tag)",
+        "context": {
+            "trigger": {
+                "tag": "v1.23"
+            }
+        },
+        "expected": "1.23",
+        "description": "regex.extract pulls version number from tag"
+    },
+    {
+        "id": "harness-functor-tostring-001",
+        "category": "harness-functor",
+        "expr": "stage.variables.enabled.toString()",
+        "context": {
+            "stage": {
+                "variables": {
+                    "enabled": true
+                }
+            }
+        },
+        "expected": "true",
+        "description": "toString() method on boolean context variable"
+    },
+    {
+        "id": "harness-functor-tointeger-001",
+        "category": "harness-functor",
+        "expr": "pipeline.variables.BUILD_NUMBER.toInteger()",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "BUILD_NUMBER": "42"
+                }
+            }
+        },
+        "expected": 42,
+        "description": "toInteger() method converts string variable to integer"
+    },
+    {
+        "id": "harness-method-default-001",
+        "category": "harness-functor",
+        "expr": "pipeline.variables.tag.default('latest')",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "tag": null
+                }
+            }
+        },
+        "expected": "latest",
+        "description": "default() method on null variable returns fallback"
+    },
+    {
+        "id": "harness-pipeline-stages-steps-output-001",
+        "category": "harness-variable",
+        "expr": "pipeline.stages.Build.steps.runTests.output.outputVariables.TEST_RESULT",
+        "context": {
+            "pipeline": {
+                "stages": {
+                    "Build": {
+                        "steps": {
+                            "runTests": {
+                                "output": {
+                                    "outputVariables": {
+                                        "TEST_RESULT": "PASSED"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "PASSED",
+        "description": "pipeline.stages.Build.steps.runTests.output.outputVariables.TEST_RESULT deep access"
+    },
+    {
+        "id": "harness-execution-steps-array-index-001",
+        "category": "harness-variable",
+        "expr": "execution.steps.test[0].output.result",
+        "context": {
+            "execution": {
+                "steps": {
+                    "test": [
+                        {
+                            "output": {
+                                "result": "ok"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "expected": "ok",
+        "description": "execution.steps.test[0].output.result array index in deep path"
+    },
+    {
+        "id": "harness-variable-account-001",
+        "category": "harness-variable",
+        "expr": "variable.account.proxy_url",
+        "context": {
+            "variable": {
+                "account": {
+                    "proxy_url": "http://proxy.example.com"
+                }
+            }
+        },
+        "expected": "http://proxy.example.com",
+        "description": "variable.account.proxy_url access"
+    },
+    {
+        "id": "harness-servicevariables-001",
+        "category": "harness-variable",
+        "expr": "serviceVariables.imageName",
+        "context": {
+            "serviceVariables": {
+                "imageName": "my-service-image"
+            }
+        },
+        "expected": "my-service-image",
+        "description": "serviceVariables.imageName access"
+    },
+    {
+        "id": "harness-pipeline-startts-001",
+        "category": "harness-variable",
+        "expr": "pipeline.startTs",
+        "context": {
+            "pipeline": {
+                "startTs": 1716307200000
+            }
+        },
+        "expected": 1716307200000,
+        "description": "pipeline.startTs access returns epoch millis"
+    },
+    {
+        "id": "harness-stage-startts-001",
+        "category": "harness-variable",
+        "expr": "stage.startTs",
+        "context": {
+            "stage": {
+                "startTs": 1716307260000
+            }
+        },
+        "expected": 1716307260000,
+        "description": "stage.startTs access returns epoch millis"
+    },
+    {
+        "id": "harness-multi-namespace-concat-001",
+        "category": "harness-expression",
+        "expr": "service.name + '-' + infra.namespace + '-' + env.name",
+        "context": {
+            "service": {
+                "name": "api"
+            },
+            "infra": {
+                "namespace": "backend"
+            },
+            "env": {
+                "name": "staging"
+            }
+        },
+        "expected": "api-backend-staging",
+        "description": "concatenate service, infra, and env namespace variables"
+    },
+    {
+        "id": "harness-ternary-env-type-001",
+        "category": "harness-expression",
+        "expr": "env.type == 'PreProduction' ? 'np-value' : 'p-value'",
+        "context": {
+            "env": {
+                "type": "PreProduction"
+            }
+        },
+        "expected": "np-value",
+        "description": "ternary based on env.type PreProduction"
+    },
+    {
+        "id": "harness-ternary-env-type-prod-001",
+        "category": "harness-expression",
+        "expr": "env.type == 'PreProduction' ? 'np-value' : 'p-value'",
+        "context": {
+            "env": {
+                "type": "Production"
+            }
+        },
+        "expected": "p-value",
+        "description": "ternary based on env.type Production falls to else branch"
+    },
+    {
+        "id": "harness-matrix-testtype-001",
+        "category": "harness-variable",
+        "expr": "matrix.testType",
+        "context": {
+            "matrix": {
+                "testType": "unit"
+            }
+        },
+        "expected": "unit",
+        "description": "matrix.testType access"
+    },
+    {
+        "id": "harness-trigger-payload-sender-001",
+        "category": "harness-variable",
+        "expr": "trigger.payload.sender.login",
+        "context": {
+            "trigger": {
+                "payload": {
+                    "sender": {
+                        "login": "octocat"
+                    }
+                }
+            }
+        },
+        "expected": "octocat",
+        "description": "trigger.payload.sender.login access"
+    },
+    {
+        "id": "harness-trigger-pr-title-001",
+        "category": "harness-variable",
+        "expr": "trigger.prTitle",
+        "context": {
+            "trigger": {
+                "prTitle": "Fix the thing"
+            }
+        },
+        "expected": "Fix the thing",
+        "description": "trigger.prTitle access"
+    },
+    {
+        "id": "harness-project-identifier-001",
+        "category": "harness-variable",
+        "expr": "project.identifier",
+        "context": {
+            "project": {
+                "identifier": "myProject"
+            }
+        },
+        "expected": "myProject",
+        "description": "project.identifier access"
+    },
+    {
+        "id": "harness-project-tags-001",
+        "category": "harness-variable",
+        "expr": "project.tags.appID",
+        "context": {
+            "project": {
+                "tags": {
+                    "appID": "app-001"
+                }
+            }
+        },
+        "expected": "app-001",
+        "description": "project.tags.appID access"
+    },
+    {
+        "id": "harness-org-identifier-001",
+        "category": "harness-variable",
+        "expr": "org.identifier",
+        "context": {
+            "org": {
+                "identifier": "myOrg"
+            }
+        },
+        "expected": "myOrg",
+        "description": "org.identifier access"
+    },
+    {
+        "id": "harness-infra-name-001",
+        "category": "harness-variable",
+        "expr": "infra.name",
+        "context": {
+            "infra": {
+                "name": "k8s-cluster"
+            }
+        },
+        "expected": "k8s-cluster",
+        "description": "infra.name access"
+    },
+    {
+        "id": "harness-pipeline-variables-service-001",
+        "category": "harness-variable",
+        "expr": "pipeline.variables.service",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "service": "payment-service"
+                }
+            }
+        },
+        "expected": "payment-service",
+        "description": "pipeline.variables.service access"
+    },
+    {
+        "id": "harness-pipeline-variables-cluster-001",
+        "category": "harness-variable",
+        "expr": "pipeline.variables.cluster",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "cluster": "us-east-1-cluster"
+                }
+            }
+        },
+        "expected": "us-east-1-cluster",
+        "description": "pipeline.variables.cluster access"
+    },
+    {
+        "id": "harness-pipeline-variables-version-001",
+        "category": "harness-variable",
+        "expr": "pipeline.variables.version",
+        "context": {
+            "pipeline": {
+                "variables": {
+                    "version": "2.3.1"
+                }
+            }
+        },
+        "expected": "2.3.1",
+        "description": "pipeline.variables.version access"
+    },
+    {
+        "id": "harness-pipeline-codebase-repourl-001",
+        "category": "harness-variable",
+        "expr": "pipeline.properties.ci.codebase.repoUrl",
+        "context": {
+            "pipeline": {
+                "properties": {
+                    "ci": {
+                        "codebase": {
+                            "repoUrl": "https://github.com/org/repo.git"
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "https://github.com/org/repo.git",
+        "description": "pipeline.properties.ci.codebase.repoUrl deep access"
+    },
+    {
+        "id": "harness-ternary-servicevariables-null-001",
+        "category": "harness-expression",
+        "expr": "serviceVariables.k8sRollbackEnabled == null ? true : serviceVariables.k8sRollbackEnabled",
+        "context": {
+            "serviceVariables": {
+                "k8sRollbackEnabled": null
+            }
+        },
+        "expected": true,
+        "description": "null check on serviceVariable selects true default"
+    },
+    {
+        "id": "harness-ternary-servicevariables-set-001",
+        "category": "harness-expression",
+        "expr": "serviceVariables.k8sRollbackEnabled == null ? true : serviceVariables.k8sRollbackEnabled",
+        "context": {
+            "serviceVariables": {
+                "k8sRollbackEnabled": false
+            }
+        },
+        "expected": false,
+        "description": "null check on serviceVariable returns actual value when set"
+    },
+    {
+        "id": "harness-steps-output-deep-001",
+        "category": "harness-variable",
+        "expr": "pipeline.stages.test.steps.Github_Connector_Metadata.output.outputVariables.connectorURL",
+        "context": {
+            "pipeline": {
+                "stages": {
+                    "test": {
+                        "steps": {
+                            "Github_Connector_Metadata": {
+                                "output": {
+                                    "outputVariables": {
+                                        "connectorURL": "https://github.com"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "https://github.com",
+        "description": "pipeline.stages.test.steps nested step output variable access"
+    },
+    {
+        "id": "harness-steps-clone-output-001",
+        "category": "harness-variable",
+        "expr": "pipeline.stages.test.steps.Scan.steps.Clone.output.outputVariables.commitHash",
+        "context": {
+            "pipeline": {
+                "stages": {
+                    "test": {
+                        "steps": {
+                            "Scan": {
+                                "steps": {
+                                    "Clone": {
+                                        "output": {
+                                            "outputVariables": {
+                                                "commitHash": "deadbeef"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "deadbeef",
+        "description": "deeply nested step group clone commit hash access"
+    },
+    {
+        "id": "harness-step-status-001",
+        "category": "harness-variable",
+        "expr": "pipeline.stages.test.steps.Scan.steps.Clone.status",
+        "context": {
+            "pipeline": {
+                "stages": {
+                    "test": {
+                        "steps": {
+                            "Scan": {
+                                "steps": {
+                                    "Clone": {
+                                        "status": "SUCCEEDED"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "SUCCEEDED",
+        "description": "step status access within nested step group"
+    },
+    {
+        "id": "harness-ternary-step-status-001",
+        "category": "harness-expression",
+        "expr": "pipeline.stages.test.steps.Deployment.steps.Shared_Image.status != 'SUCCEEDED' ? 'SKIPPED' : 'DONE'",
+        "context": {
+            "pipeline": {
+                "stages": {
+                    "test": {
+                        "steps": {
+                            "Deployment": {
+                                "steps": {
+                                    "Shared_Image": {
+                                        "status": "FAILED"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "SKIPPED",
+        "description": "ternary based on step status returns SKIPPED when not SUCCEEDED"
+    },
+    {
+        "id": "harness-ternary-step-status-succeeded-001",
+        "category": "harness-expression",
+        "expr": "pipeline.stages.test.steps.Deployment.steps.Shared_Image.status != 'SUCCEEDED' ? 'SKIPPED' : 'DONE'",
+        "context": {
+            "pipeline": {
+                "stages": {
+                    "test": {
+                        "steps": {
+                            "Deployment": {
+                                "steps": {
+                                    "Shared_Image": {
+                                        "status": "SUCCEEDED"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "DONE",
+        "description": "ternary based on step status returns DONE when SUCCEEDED"
+    },
+    {
+        "id": "harness-execution-steps-token-output-001",
+        "category": "harness-variable",
+        "expr": "pipeline.stages.test.steps.Get_GitHub_Token.steps.GIT_Input.output.outputVariables.connectorUsername",
+        "context": {
+            "pipeline": {
+                "stages": {
+                    "test": {
+                        "steps": {
+                            "Get_GitHub_Token": {
+                                "steps": {
+                                    "GIT_Input": {
+                                        "output": {
+                                            "outputVariables": {
+                                                "connectorUsername": "github-app"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": "github-app",
+        "description": "deeply nested step group connector username output variable"
+    }
+]
