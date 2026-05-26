@@ -10,7 +10,6 @@ import (
 
 	"github.com/harness/go-jexl/jexl/ast"
 	"github.com/harness/go-jexl/jexl/checker/nature"
-	"github.com/harness/go-jexl/jexl/vm"
 )
 
 // FieldIndex returns the struct field index path so the
@@ -55,61 +54,6 @@ func MethodIndex(c *nature.Cache, env nature.Nature, node ast.Node) (bool, int, 
 		}
 	}
 	return false, 0, ""
-}
-
-// TypedFuncIndex returns the vm.FuncTypes slot index for fn,
-// enabling OpCallTyped dispatch (skips reflection at runtime).
-// Returns false for variadic, named, or unmatched signatures.
-func TypedFuncIndex(fn reflect.Type, method bool) (int, bool) {
-	if fn == nil {
-		return 0, false
-	}
-	if fn.Kind() != reflect.Func {
-		return 0, false
-	}
-	// variadic and named func types have no slot in vm.FuncTypes
-	if fn.IsVariadic() {
-		return 0, false
-	}
-	if fn.PkgPath() != "" {
-		return 0, false
-	}
-
-	fnNumIn := fn.NumIn()
-	fnInOffset := 0
-	if method {
-		fnNumIn--
-		fnInOffset = 1
-	}
-
-funcTypes:
-	for i := range vm.FuncTypes {
-		if i == 0 {
-			continue
-		}
-		typed := reflect.ValueOf(vm.FuncTypes[i]).Elem().Type()
-		if typed.Kind() != reflect.Func {
-			continue
-		}
-		if typed.NumOut() != fn.NumOut() {
-			continue
-		}
-		for j := 0; j < typed.NumOut(); j++ {
-			if typed.Out(j) != fn.Out(j) {
-				continue funcTypes
-			}
-		}
-		if typed.NumIn() != fnNumIn {
-			continue
-		}
-		for j := 0; j < typed.NumIn(); j++ {
-			if typed.In(j) != fn.In(j+fnInOffset) {
-				continue funcTypes
-			}
-		}
-		return i, true
-	}
-	return 0, false
 }
 
 // IsFastFunc reports whether fn matches the fast-call

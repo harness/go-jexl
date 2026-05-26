@@ -5,21 +5,19 @@
 
 package vm
 
-//go:generate sh -c "go run ./func_types > ./func_types[generated].go"
-
 import (
 	"fmt"
 	"math"
 	"math/big"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/harness/go-jexl/jexl/classes/java/util"
 	"github.com/harness/go-jexl/jexl/coerce"
 	"github.com/harness/go-jexl/jexl/config"
 	"github.com/harness/go-jexl/jexl/internal/deref"
+	"github.com/harness/go-jexl/jexl/internal/eval"
 	"github.com/harness/go-jexl/jexl/token"
 )
 
@@ -130,10 +128,10 @@ func (vm *VM) Run(program *Program, env any) (_ any, err error) {
 	if len(vm.Stack) > 0 {
 		result := vm.pop()
 		// BigInteger/BigDecimal values serialize to their canonical string representation.
-		if bi, ok := asBigInt(result); ok {
+		if bi, ok := coerce.ToBigInt(result); ok {
 			return bi.String(), nil
 		}
-		if bd, ok := asBigDec(result); ok {
+		if bd, ok := coerce.ToBigDecimal(result); ok {
 			return bd.String(), nil
 		}
 		return result, nil
@@ -165,9 +163,6 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 		case OpPush:
 			vm.push(program.Constants[arg])
 
-		case OpInt:
-			vm.push(arg)
-
 		case OpPop:
 			vm.pop()
 
@@ -185,7 +180,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if val == nil {
 				if m, ok := env.(map[string]any); ok {
 					if keyStr, isStr := key.(string); isStr {
-						if _, exists := m[keyStr]; !exists && HasAntishPrefix(m, keyStr) {
+						if _, exists := m[keyStr]; !exists && hasAntishPrefix(m, keyStr) {
 							val = &AntishCursor{Env: m, Path: keyStr}
 						}
 					}
@@ -200,7 +195,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			m := env.(map[string]any)
 			key := program.Constants[arg].(string)
 			val, exists := m[key]
-			if !exists && HasAntishPrefix(m, key) {
+			if !exists && hasAntishPrefix(m, key) {
 				// Key not in context but a dotted key exists — use antish cursor.
 				val = &AntishCursor{Env: m, Path: key}
 			}
@@ -254,12 +249,12 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 
 		case OpNegate:
 			val := vm.pop()
-			if bi, ok := asBigInt(val); ok {
+			if bi, ok := coerce.ToBigInt(val); ok {
 				vm.push(new(big.Int).Neg(bi))
-			} else if bd, ok := asBigDec(val); ok {
+			} else if bd, ok := coerce.ToBigDecimal(val); ok {
 				vm.push(bd.Neg())
 			} else {
-				vm.push(Negate(val))
+				vm.push(eval.Negate(val))
 			}
 
 		case OpNot:
@@ -269,7 +264,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 		case OpEqual:
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(looseEqual(a, b))
+			vm.push(eval.LooseEqual(a, b))
 
 		case OpEqualInt:
 			b := vm.pop()
@@ -280,7 +275,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if aOk && bOk {
 				vm.push(ai == bi)
 			} else {
-				vm.push(looseEqual(a, b))
+				vm.push(eval.LooseEqual(a, b))
 			}
 
 		case OpEqualString:
@@ -298,7 +293,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if arg < 0 {
 				panic("negative jump offset is invalid")
 			}
-			if !IsFalsy(vm.current()) {
+			if !eval.IsFalsy(vm.current()) {
 				vm.ip += arg
 			}
 
@@ -306,7 +301,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if arg < 0 {
 				panic("negative jump offset is invalid")
 			}
-			if IsFalsy(vm.current()) {
+			if eval.IsFalsy(vm.current()) {
 				vm.ip += arg
 			}
 
@@ -314,7 +309,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if arg < 0 {
 				panic("negative jump offset is invalid")
 			}
-			if IsNil(vm.current()) {
+			if eval.IsNil(vm.current()) {
 				vm.ip += arg
 			}
 
@@ -322,7 +317,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if arg < 0 {
 				panic("negative jump offset is invalid")
 			}
-			if !IsNil(vm.current()) {
+			if !eval.IsNil(vm.current()) {
 				vm.ip += arg
 			}
 
@@ -330,7 +325,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if arg < 0 {
 				panic("negative jump offset is invalid")
 			}
-			if IsFalsy(vm.current()) {
+			if eval.IsFalsy(vm.current()) {
 				vm.ip += arg
 			}
 
@@ -354,7 +349,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 		case OpIn:
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(In(a, b))
+			vm.push(eval.In(a, b))
 
 		case OpInstanceOf:
 			typeName := vm.pop().(string)
@@ -366,10 +361,10 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			a := vm.pop()
 			if af, ok := a.(float64); ok && math.IsNaN(af) {
 				vm.push(true)
-			} else if cmp, ok := bigCompare(a, b); ok {
+			} else if cmp, ok := eval.BigCompare(a, b); ok {
 				vm.push(cmp < 0)
 			} else {
-				vm.push(Less(a, b))
+				vm.push(eval.Less(a, b))
 			}
 
 		case OpMore:
@@ -377,10 +372,10 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			a := vm.pop()
 			if af, ok := a.(float64); ok && math.IsNaN(af) {
 				vm.push(false)
-			} else if cmp, ok := bigCompare(a, b); ok {
+			} else if cmp, ok := eval.BigCompare(a, b); ok {
 				vm.push(cmp > 0)
 			} else {
-				vm.push(More(a, b))
+				vm.push(eval.More(a, b))
 			}
 
 		case OpLessOrEqual:
@@ -388,10 +383,10 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			a := vm.pop()
 			if af, ok := a.(float64); ok && math.IsNaN(af) {
 				vm.push(true)
-			} else if cmp, ok := bigCompare(a, b); ok {
+			} else if cmp, ok := eval.BigCompare(a, b); ok {
 				vm.push(cmp <= 0)
 			} else {
-				vm.push(LessOrEqual(a, b))
+				vm.push(eval.LessOrEqual(a, b))
 			}
 
 		case OpMoreOrEqual:
@@ -399,10 +394,10 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			a := vm.pop()
 			if af, ok := a.(float64); ok && math.IsNaN(af) {
 				vm.push(false)
-			} else if cmp, ok := bigCompare(a, b); ok {
+			} else if cmp, ok := eval.BigCompare(a, b); ok {
 				vm.push(cmp >= 0)
 			} else {
-				vm.push(MoreOrEqual(a, b))
+				vm.push(eval.MoreOrEqual(a, b))
 			}
 
 		case OpAdd:
@@ -414,26 +409,12 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 				vm.push(result)
 			} else if _, aStr := a.(string); aStr {
 				// String + anything: coerce b to string.
-				vm.push(a.(string) + jexlStringOf(b))
+				vm.push(a.(string) + coerce.ToStringJexl(b))
 			} else if _, bStr := b.(string); bStr {
 				// Anything + string: coerce a to string.
-				vm.push(jexlStringOf(a) + b.(string))
+				vm.push(coerce.ToStringJexl(a) + b.(string))
 			} else {
-				a = coerceToNumeric(a)
-				b = coerceToNumeric(b)
-				// Detect int64 overflow and promote to BigInteger.
-				if ai, aOk := toInt64Safe(a); aOk {
-					if bi, bOk := toInt64Safe(b); bOk {
-						result := ai + bi
-						if (bi > 0 && result < ai) || (bi < 0 && result > ai) {
-							// overflow: promote to BigInteger
-							r := new(big.Int).Add(big.NewInt(ai), big.NewInt(bi))
-							vm.push(r)
-							break
-						}
-					}
-				}
-				vm.push(Add(a, b))
+				vm.push(addNumeric(a, b))
 			}
 
 		case OpSubtract:
@@ -442,9 +423,9 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if result, ok := bigArith(a, b, "-"); ok {
 				vm.push(result)
 			} else {
-				a = coerceToNumeric(a)
-				b = coerceToNumeric(b)
-				vm.push(Subtract(a, b))
+				a = coerce.ToNumeric(a)
+				b = coerce.ToNumeric(b)
+				vm.push(eval.Subtract(a, b))
 			}
 
 		case OpMultiply:
@@ -453,9 +434,9 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if result, ok := bigArith(a, b, "*"); ok {
 				vm.push(result)
 			} else {
-				a = coerceToNumeric(a)
-				b = coerceToNumeric(b)
-				vm.push(Multiply(a, b))
+				a = coerce.ToNumeric(a)
+				b = coerce.ToNumeric(b)
+				vm.push(eval.Multiply(a, b))
 			}
 
 		case OpDivide:
@@ -464,15 +445,15 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if result, ok := bigArith(a, b, "/"); ok {
 				vm.push(result)
 			} else {
-				if ToFloat64(b) == 0 {
+				if coerce.ToFloat64(b) == 0 {
 					panic(fmt.Errorf("division by zero"))
 				}
 				ak := reflect.TypeOf(a).Kind()
 				bk := reflect.TypeOf(b).Kind()
 				if ak == reflect.Float32 || ak == reflect.Float64 || bk == reflect.Float32 || bk == reflect.Float64 {
-					vm.push(Divide(a, b))
+					vm.push(eval.Divide(a, b))
 				} else {
-					vm.push(IntDivide(a, b))
+					vm.push(eval.DivideInt(a, b))
 				}
 			}
 
@@ -487,27 +468,27 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 				bf, bIsFloat := b.(float64)
 				if aIsFloat || bIsFloat {
 					if !aIsFloat {
-						af = ToFloat64(a)
+						af = coerce.ToFloat64(a)
 					}
 					if !bIsFloat {
-						bf = ToFloat64(b)
+						bf = coerce.ToFloat64(b)
 					}
 					vm.push(math.Mod(af, bf))
 				} else {
-					vm.push(Modulo(a, b))
+					vm.push(eval.Modulo(a, b))
 				}
 			}
 
 		case OpExponent:
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(Exponent(a, b))
+			vm.push(eval.Exponent(a, b))
 
 		case OpRange:
 			b := vm.pop()
 			a := vm.pop()
-			min := ToInt(a)
-			max := ToInt(b)
+			min := coerce.ToInt(a)
+			max := coerce.ToInt(b)
 			var size int
 			if min <= max {
 				size = max - min + 1
@@ -517,50 +498,38 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			if size > 0 {
 				vm.memGrow(uint(size))
 			}
-			vm.push(ToRange(min, max))
-
-		case OpMatches:
-			b := vm.pop()
-			a := vm.pop()
-			if IsNil(a) || IsNil(b) {
-				vm.push(false)
-				break
-			}
-			if rv, isRegexVal := b.(regexp.Regexp); isRegexVal {
-				b = &rv
-			}
-			vm.push(jexlRegexMatch(a, b))
+			vm.push(eval.ToRange(min, max))
 
 		case OpInOrMatches:
 			b := vm.pop()
 			a := vm.pop()
-			if IsNil(a) || IsNil(b) {
+			if eval.IsNil(a) || eval.IsNil(b) {
 				vm.push(false)
 				break
 			}
 			if _, isRegex := b.(*regexp.Regexp); isRegex {
-				vm.push(jexlRegexMatch(a, b))
+				vm.push(eval.Match(a, b))
 			} else if rv, isRegexVal := b.(regexp.Regexp); isRegexVal {
-				vm.push(jexlRegexMatch(a, &rv))
+				vm.push(eval.Match(a, &rv))
 			} else if bs, ok := b.(string); ok {
-				vm.push(jexlRegexFullMatch(a, bs))
+				vm.push(eval.MatchFull(a, bs))
 			} else {
-				vm.push(In(a, b))
+				vm.push(eval.In(a, b))
 			}
 
 		case OpMatchesConst:
 			a := vm.pop()
-			if IsNil(a) {
+			if eval.IsNil(a) {
 				vm.push(false)
 				break
 			}
 			r := program.Constants[arg].(*regexp.Regexp)
-			vm.push(jexlRegexMatch(a, r))
+			vm.push(eval.Match(a, r))
 
 		case OpStartsWith:
 			b := vm.pop()
 			a := vm.pop()
-			if IsNil(a) || IsNil(b) {
+			if eval.IsNil(a) || eval.IsNil(b) {
 				vm.push(false)
 				break
 			}
@@ -569,17 +538,11 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 		case OpEndsWith:
 			b := vm.pop()
 			a := vm.pop()
-			if IsNil(a) || IsNil(b) {
+			if eval.IsNil(a) || eval.IsNil(b) {
 				vm.push(false)
 				break
 			}
 			vm.push(strings.HasSuffix(a.(string), b.(string)))
-
-		case OpSlice:
-			from := vm.pop()
-			to := vm.pop()
-			node := vm.pop()
-			vm.push(Slice(node, from, to))
 
 		case OpCall:
 			v := vm.pop()
@@ -711,61 +674,6 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			args, *fnArgsBuf = vm.getArgsForFunc(*fnArgsBuf, program, arg)
 			vm.push(fn(args...))
 
-		case OpCallSafe:
-			fn := vm.pop().(SafeFunction)
-			var args []any
-			args, *fnArgsBuf = vm.getArgsForFunc(*fnArgsBuf, program, arg)
-			out, mem, err := fn(args...)
-			if err != nil {
-				panic(err)
-			}
-			vm.memGrow(mem)
-			vm.push(out)
-
-		case OpCallTyped:
-			v := vm.pop()
-			if closure, ok := v.(*Closure); ok {
-				// Determine number of args from the FuncType signature.
-				numArgs := 0
-				if arg < len(program.Constants) {
-					// arg is a FuncTypes index — peek at the type to count params
-					_ = arg
-				}
-				// Fall back: collect args by counting params from closure.
-				numArgs = len(closure.Params)
-				args := make([]any, numArgs)
-				for i := numArgs - 1; i >= 0; i-- {
-					args[i] = vm.pop()
-				}
-				bodyProgram := closure.Program.(*Program)
-				callEnv := make(map[string]any, len(closure.Captures)+numArgs+program.variables)
-				if envMap, ok2 := env.(map[string]any); ok2 {
-					for k, ev := range envMap {
-						callEnv[k] = ev
-					}
-				}
-				for i := 0; i < program.variables; i++ {
-					if name, ok2 := program.debugInfo[fmt.Sprintf("var_%d", i)]; ok2 {
-						callEnv[name] = vm.Variables[i]
-					}
-				}
-				for k, cv := range closure.Captures {
-					callEnv[k] = cv
-				}
-				for i, p := range closure.Params {
-					if i < len(args) {
-						callEnv[p] = args[i]
-					}
-				}
-				result, err := Run(bodyProgram, callEnv)
-				if err != nil {
-					panic(err)
-				}
-				vm.push(result)
-				break
-			}
-			vm.push(vm.call(v, arg))
-
 		case OpArray:
 			size := vm.pop().(int)
 			vm.memGrow(uint(size))
@@ -812,30 +720,6 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 		case OpDecrementIndex:
 			vm.currScope.Index--
 
-		case OpIncrementCount:
-			vm.currScope.Count++
-
-		case OpGetIndex:
-			vm.push(vm.currScope.Index)
-
-		case OpGetCount:
-			vm.push(vm.currScope.Count)
-
-		case OpGetLen:
-			vm.push(vm.currScope.Len)
-
-		case OpGetAcc:
-			vm.push(vm.currScope.Acc)
-
-		case OpSetAcc:
-			vm.currScope.Acc = vm.pop()
-
-		case OpSetIndex:
-			vm.currScope.Index = vm.pop().(int)
-
-		case OpPointer:
-			vm.push(vm.currScope.Item())
-
 		case OpTry:
 			if arg == 0 {
 				// Pop try frame: try body exited normally.
@@ -874,34 +758,6 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 				panic(&ThrownValue{Value: val})
 			}
 
-		case OpBegin:
-			a := vm.pop()
-			s := vm.allocScope()
-			switch v := a.(type) {
-			case []int:
-				s.Ints = v
-				s.Len = len(v)
-			case []float64:
-				s.Floats = v
-				s.Len = len(v)
-			case []string:
-				s.Strings = v
-				s.Len = len(v)
-			case []any:
-				s.Anys = v
-				s.Len = len(v)
-			default:
-				s.Array = reflect.ValueOf(a)
-				s.Len = s.Array.Len()
-			}
-			vm.Scopes = append(vm.Scopes, s)
-			vm.currScope = s
-
-		case OpAnd:
-			a := vm.pop()
-			b := vm.pop()
-			vm.push(a.(bool) && b.(bool))
-
 		case OpOr:
 			a := vm.pop()
 			b := vm.pop()
@@ -910,74 +766,46 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 		case OpBitOr:
 			b := vm.pop()
 			a := vm.pop()
-			result, err := BitwiseOr(a, b)
-			if err != nil {
-				panic(err)
-			}
-			vm.push(result)
+			vm.push(eval.BitwiseOr(a, b))
 
 		case OpBitXor:
 			b := vm.pop()
 			a := vm.pop()
-			result, err := BitwiseXor(a, b)
-			if err != nil {
-				panic(err)
-			}
-			vm.push(result)
+			vm.push(eval.BitwiseXor(a, b))
 
 		case OpBitAnd:
 			b := vm.pop()
 			a := vm.pop()
-			result, err := BitwiseAnd(a, b)
-			if err != nil {
-				panic(err)
-			}
-			vm.push(result)
+			vm.push(eval.BitwiseAnd(a, b))
 
 		case OpBitNot:
 			a := vm.pop()
-			result, err := BitwiseNot(a)
-			if err != nil {
-				panic(err)
-			}
-			vm.push(result)
+			vm.push(eval.BitwiseNot(a))
 
 		case OpShiftLeft:
 			b := vm.pop()
 			a := vm.pop()
-			result, err := ShiftLeft(a, b)
-			if err != nil {
-				panic(err)
-			}
-			vm.push(result)
+			vm.push(eval.ShiftLeft(a, b))
 
 		case OpShiftRight:
 			b := vm.pop()
 			a := vm.pop()
-			result, err := ShiftRight(a, b)
-			if err != nil {
-				panic(err)
-			}
-			vm.push(result)
+			vm.push(eval.ShiftRight(a, b))
 
 		case OpShiftRightU:
 			b := vm.pop()
 			a := vm.pop()
-			result, err := ShiftRightUnsigned(a, b)
-			if err != nil {
-				panic(err)
-			}
-			vm.push(result)
+			vm.push(eval.ShiftRightUnsigned(a, b))
 
 		case OpStrictEqual:
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(StrictEqual(a, b))
+			vm.push(eval.StrictEqual(a, b))
 
 		case OpStrictNotEqual:
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(!StrictEqual(a, b))
+			vm.push(!eval.StrictEqual(a, b))
 
 		case OpLambda:
 			tmpl := program.Constants[arg].(*Closure)
@@ -1070,52 +898,28 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 						result = coerce.ToString(lhs) + rhs.(string)
 					}
 				} else {
-					result = Add(lhs, rhs)
+					result = eval.Add(lhs, rhs)
 				}
 			case "-=":
-				result = Subtract(lhs, rhs)
+				result = eval.Subtract(lhs, rhs)
 			case "*=":
-				result = Multiply(lhs, rhs)
+				result = eval.Multiply(lhs, rhs)
 			case "/=":
-				result = Divide(lhs, rhs)
+				result = eval.Divide(lhs, rhs)
 			case "%=":
-				result = Modulo(lhs, rhs)
+				result = eval.Modulo(lhs, rhs)
 			case "&=":
-				r, err := BitwiseAnd(lhs, rhs)
-				if err != nil {
-					panic(err)
-				}
-				result = r
+				result = eval.BitwiseAnd(lhs, rhs)
 			case "|=":
-				r, err := BitwiseOr(lhs, rhs)
-				if err != nil {
-					panic(err)
-				}
-				result = r
+				result = eval.BitwiseOr(lhs, rhs)
 			case "^=":
-				r, err := BitwiseXor(lhs, rhs)
-				if err != nil {
-					panic(err)
-				}
-				result = r
+				result = eval.BitwiseXor(lhs, rhs)
 			case "<<=":
-				r, err := ShiftLeft(lhs, rhs)
-				if err != nil {
-					panic(err)
-				}
-				result = r
+				result = eval.ShiftLeft(lhs, rhs)
 			case ">>=":
-				r, err := ShiftRight(lhs, rhs)
-				if err != nil {
-					panic(err)
-				}
-				result = r
+				result = eval.ShiftRight(lhs, rhs)
 			case ">>>=":
-				r, err := ShiftRightUnsigned(lhs, rhs)
-				if err != nil {
-					panic(err)
-				}
-				result = r
+				result = eval.ShiftRightUnsigned(lhs, rhs)
 			default:
 				panic(fmt.Sprintf("unknown compound assignment operator %q", op.Op))
 			}
@@ -1124,7 +928,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 
 		case OpIncrement:
 			old := vm.Variables[arg]
-			newVal, err := Increment(old)
+			newVal, err := eval.Increment(old)
 			if err != nil {
 				panic(err)
 			}
@@ -1133,7 +937,7 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 
 		case OpDecrement:
 			old := vm.Variables[arg]
-			newVal, err := Decrement(old)
+			newVal, err := eval.Decrement(old)
 			if err != nil {
 				panic(err)
 			}
@@ -1182,21 +986,17 @@ func (vm *VM) runLoop(program *Program, env any, fnArgsBuf *[]any) (panicked boo
 			}
 			vm.ip += arg
 
-		case OpContinue:
-			// arg is a backward jump offset; compiler emits any necessary scope cleanup before this.
-			vm.ip -= arg
-
 		case OpReturn:
 			// Unwind the script: set ip past the end so the run loop exits.
 			vm.ip = len(program.Bytecode)
 
 		case OpEmpty:
 			a := vm.pop()
-			vm.push(Empty(a))
+			vm.push(eval.Empty(a))
 
 		case OpSize:
 			a := vm.pop()
-			vm.push(Size(a))
+			vm.push(eval.Size(a))
 
 		case OpSet:
 			size := arg
@@ -1369,240 +1169,4 @@ func (vm *VM) getArgsForFunc(argsBuf []any, program *Program, needed int) (args 
 	vm.Stack = vm.Stack[:len(vm.Stack)-needed]
 
 	return buf, argsBuf
-}
-
-// CompoundAssignOp is stored in program.Constants for OpCompoundAssign.
-// VarIndex is the Variables slot; Op is the operator string (e.g. "+=").
-type CompoundAssignOp struct {
-	VarIndex int
-	Op       string
-}
-
-// CompoundEnvAssignOp is stored in program.Constants for OpCompoundStoreEnv.
-type CompoundEnvAssignOp struct {
-	Key string
-	Op  string
-}
-
-func applyCompoundOp(op string, lhs, rhs any) any {
-	switch op {
-	case "+=":
-		if _, lhsStr := lhs.(string); lhsStr {
-			return lhs.(string) + coerce.ToString(rhs)
-		} else if _, rhsStr := rhs.(string); rhsStr {
-			return coerce.ToString(lhs) + rhs.(string)
-		}
-		return Add(lhs, rhs)
-	case "-=":
-		return Subtract(lhs, rhs)
-	case "*=":
-		return Multiply(lhs, rhs)
-	case "/=":
-		return Divide(lhs, rhs)
-	case "%=":
-		return Modulo(lhs, rhs)
-	case "&=":
-		r, err := BitwiseAnd(lhs, rhs)
-		if err != nil {
-			panic(err)
-		}
-		return r
-	case "|=":
-		r, err := BitwiseOr(lhs, rhs)
-		if err != nil {
-			panic(err)
-		}
-		return r
-	case "^=":
-		r, err := BitwiseXor(lhs, rhs)
-		if err != nil {
-			panic(err)
-		}
-		return r
-	case "<<=":
-		r, err := ShiftLeft(lhs, rhs)
-		if err != nil {
-			panic(err)
-		}
-		return r
-	case ">>=":
-		r, err := ShiftRight(lhs, rhs)
-		if err != nil {
-			panic(err)
-		}
-		return r
-	case ">>>=":
-		r, err := ShiftRightUnsigned(lhs, rhs)
-		if err != nil {
-			panic(err)
-		}
-		return r
-	default:
-		panic(fmt.Sprintf("unknown compound assignment operator %q", op))
-	}
-}
-
-func clearSlice[S ~[]E, E any](s S) {
-	var zero E
-	for i := range s {
-		s[i] = zero // clear mem, optimized by the compiler, in Go 1.21 the "clear" builtin can be used
-	}
-}
-
-// estimateFnArgsCount inspects a *Program and estimates how many function
-// arguments will be required to run it.
-func estimateFnArgsCount(program *Program) int {
-	// Implementation note: a program will not necessarily go through all
-	// operations, but this is just an estimation
-	var count int
-	for _, op := range program.Bytecode {
-		if int(op) < len(opArgLenEstimation) {
-			count += opArgLenEstimation[op]
-		}
-	}
-	return count
-}
-
-func instanceOf(a any, typeName string) bool {
-	if a == nil {
-		return false
-	}
-	switch typeName {
-	case "String":
-		_, ok := a.(string)
-		return ok
-	case "Boolean":
-		_, ok := a.(bool)
-		return ok
-	case "Integer", "Long", "Short", "Byte":
-		switch a.(type) {
-		case int, int8, int16, int32, int64,
-			uint, uint8, uint16, uint32, uint64,
-			float64:
-			rv := reflect.ValueOf(a)
-			switch rv.Kind() {
-			case reflect.Float64, reflect.Float32:
-				f := rv.Float()
-				return f == float64(int64(f))
-			default:
-				return true
-			}
-		}
-		return false
-	case "Float", "Double":
-		switch a.(type) {
-		case float32, float64, int, int8, int16, int32, int64,
-			uint, uint8, uint16, uint32, uint64:
-			return true
-		}
-		return false
-	case "Number":
-		switch a.(type) {
-		case int, int8, int16, int32, int64,
-			uint, uint8, uint16, uint32, uint64,
-			float32, float64:
-			return true
-		}
-		return false
-	case "Map":
-		return reflect.TypeOf(a).Kind() == reflect.Map
-	case "List", "Array":
-		k := reflect.TypeOf(a).Kind()
-		return k == reflect.Slice || k == reflect.Array
-	default:
-		// For unknown type names, check the Go type name.
-		return reflect.TypeOf(a).Name() == typeName
-	}
-}
-
-// jexlStringOf converts a value to string following JEXL/Java conventions.
-// Float64 whole numbers are displayed as "N.0" (Java Double.toString behavior).
-func jexlStringOf(v any) string {
-	if f, ok := v.(float64); ok {
-		if math.IsNaN(f) {
-			return "NaN"
-		}
-		if math.IsInf(f, 1) {
-			return "Infinity"
-		}
-		if math.IsInf(f, -1) {
-			return "-Infinity"
-		}
-		s := strconv.FormatFloat(f, 'f', -1, 64)
-		if !strings.Contains(s, ".") {
-			s += ".0"
-		}
-		return s
-	}
-	return coerce.ToString(v)
-}
-
-// looseEqual implements JEXL loose equality: number vs string comparison uses toString coercion.
-func looseEqual(a, b any) bool {
-	// BigDec/BigInt equality: use bigCompare.
-	if cmp, ok := bigCompare(a, b); ok {
-		return cmp == 0
-	}
-	// String vs numeric: compare by converting number to string.
-	aStr, aIsStr := a.(string)
-	bStr, bIsStr := b.(string)
-	if aIsStr && !bIsStr && b != nil {
-		return aStr == coerce.ToString(b)
-	}
-	if bIsStr && !aIsStr && a != nil {
-		return coerce.ToString(a) == bStr
-	}
-	return Equal(a, b)
-}
-
-// jexlRegexFullMatch performs Java JEXL-style full-string regex match using a pattern string.
-func jexlRegexFullMatch(a any, pattern string) bool {
-	anchored := "^(?:" + pattern + ")$"
-	r, err := regexp.Compile(anchored)
-	if err != nil {
-		panic(err)
-	}
-	if s, ok := a.(string); ok {
-		return r.MatchString(s)
-	}
-	if b, ok := a.([]byte); ok {
-		return r.Match(b)
-	}
-	return false
-}
-
-// jexlRegexMatch matches using a compiled *regexp.Regexp or a string pattern (full-match).
-func jexlRegexMatch(a, b any) bool {
-	switch r := b.(type) {
-	case *regexp.Regexp:
-		fullPattern := "^(?:" + r.String() + ")$"
-		fr, err := regexp.Compile(fullPattern)
-		if err != nil {
-			// Fallback to original
-			fr = r
-		}
-		if s, ok := a.(string); ok {
-			return fr.MatchString(s)
-		}
-		if bs, ok := a.([]byte); ok {
-			return fr.Match(bs)
-		}
-		return false
-	case string:
-		return jexlRegexFullMatch(a, r)
-	}
-	return false
-}
-
-var opArgLenEstimation = [...]int{
-	OpCall1: 1,
-	OpCall2: 2,
-	OpCall3: 3,
-	// we don't know exactly but we know at least 4, so be conservative as this
-	// is only an optimization and we also want to avoid excessive preallocation
-	OpCallN: 4,
-	// here we don't know either, but we can guess it could be common to receive
-	// up to 3 arguments in a function
-	OpCallFast: 3,
-	OpCallSafe: 3,
 }

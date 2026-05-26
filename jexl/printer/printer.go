@@ -20,6 +20,15 @@ func Print(node ast.Node) error {
 	return Fprint(os.Stdout, node)
 }
 
+// Sprint returns node as a JEXL source string.
+func Sprint(node ast.Node) (string, error) {
+	var sb strings.Builder
+	if err := Fprint(&sb, node); err != nil {
+		return "", err
+	}
+	return sb.String(), nil
+}
+
 // Fprint writes node as JEXL source to w.
 func Fprint(w io.Writer, node ast.Node) error {
 	p := &printer{w: w}

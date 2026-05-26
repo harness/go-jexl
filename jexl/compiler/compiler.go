@@ -997,9 +997,7 @@ func (c *compiler) MemberNode(node *ast.MemberExpr) {
 //  1. Inline lambda call / closure variable → OpCallLambda
 //  2. Named builtin (config.Functions) → emitFunction
 //  3. Registry class method call → emitFunction wrapping obj.Call
-//  4. Callee with known func type → choose the fastest call opcode:
-//     OpCallTyped (pre-matched signature), OpCallFast (variadic any),
-//     or generic OpCall.
+//  4. Callee with known func type → OpCallFast (variadic any) or generic OpCall.
 //
 // For cases 4+ the callee itself is compiled first, leaving the
 // function value on the stack for the call opcode to consume.
@@ -1095,12 +1093,7 @@ func (c *compiler) CallNode(node *ast.CallExpr) {
 
 	if c.config != nil {
 		isMethod, _, _ := checker.MethodIndex(c.ntCache, c.config.Context, node.Callee)
-		if index, ok := checker.TypedFuncIndex(node.Callee.Type(), isMethod); ok {
-			// Signature matched a pre-compiled FuncTypes slot — no reflection.
-			c.emit(OpCallTyped, index)
-			return
-		} else if checker.IsFastFunc(node.Callee.Type(), isMethod) {
-			// Variadic func(...any) any — slightly faster than generic call.
+		if checker.IsFastFunc(node.Callee.Type(), isMethod) {
 			c.emit(OpCallFast, len(node.Arguments))
 		} else {
 			c.emit(OpCall, len(node.Arguments))

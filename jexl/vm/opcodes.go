@@ -10,7 +10,6 @@ type Opcode byte
 const (
 	OpInvalid Opcode = iota
 	OpPush
-	OpInt
 	OpPop
 	OpStore
 	OpLoadVar
@@ -40,7 +39,6 @@ const (
 	OpJumpIfEnd
 	OpJumpBackward
 	OpIn
-	OpMatches
 	OpMatchesConst
 	OpInOrMatches
 	OpStartsWith
@@ -57,7 +55,6 @@ const (
 	OpModulo
 	OpExponent
 	OpRange
-	OpSlice
 	OpCall
 	OpCall0
 	OpCall1
@@ -65,24 +62,12 @@ const (
 	OpCall3
 	OpCallN
 	OpCallFast
-	OpCallSafe
-	OpCallTyped
 	OpArray
 	OpMap
 	OpDeref
 	OpIncrementIndex
 	OpDecrementIndex
-	OpIncrementCount
-	OpGetIndex
-	OpGetCount
-	OpGetLen
-	OpGetAcc
-	OpSetAcc
-	OpSetIndex
-	OpPointer
 	OpThrow
-	OpBegin
-	OpAnd
 	OpOr
 	OpBitOr
 	OpBitXor
@@ -101,14 +86,12 @@ const (
 	OpDecrement
 	OpForEach
 	OpBreak
-	OpContinue
 	OpReturn
 	OpTry
 	OpEmpty
 	OpSize
 	OpSet
 	OpNew
-	OpStoreMember        // store value into object field: stack=[obj, val], arg=const field name
 	OpStoreIndex         // store value into collection at key: stack=[obj, key, val]
 	OpCompoundStoreIndex // compound assign to collection: stack=[obj, key, rhs], arg=const CompoundAssignOp with Op string (VarIndex unused)
 	OpCompoundStoreEnv   // compound assign to env variable: stack=[rhs], arg=const string key

@@ -4,7 +4,34 @@
 
 package coerce
 
-import "reflect"
+import (
+	"math"
+	"reflect"
+	"strconv"
+	"strings"
+)
+
+// ToStringJexl converts a value to string following JEXL/Java conventions.
+// Float64 whole numbers are displayed as "N.0" (Java Double.toString behavior).
+func ToStringJexl(v any) string {
+	if f, ok := v.(float64); ok {
+		if math.IsNaN(f) {
+			return "NaN"
+		}
+		if math.IsInf(f, 1) {
+			return "Infinity"
+		}
+		if math.IsInf(f, -1) {
+			return "-Infinity"
+		}
+		s := strconv.FormatFloat(f, 'f', -1, 64)
+		if !strings.Contains(s, ".") {
+			s += ".0"
+		}
+		return s
+	}
+	return ToString(v)
+}
 
 // DeepEqual reports whether a and b are equal, coercing numeric types before comparing.
 func DeepEqual(a, b any) bool {

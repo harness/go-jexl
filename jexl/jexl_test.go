@@ -13,7 +13,7 @@ import (
 	"github.com/harness/go-jexl/jexl/vm"
 )
 
-func TestSyntax(t *testing.T) {
+func TestEval(t *testing.T) {
 	ctx := map[string]any{
 		"a":    10,
 		"b":    3,
@@ -253,6 +253,38 @@ func TestSyntax(t *testing.T) {
 		if !coerce.DeepEqual(out, tc.want) {
 			t.Errorf("expr %q: got %v (%T), want %v (%T)", tc.expr, out, out, tc.want, tc.want)
 		}
+	}
+}
+
+// TestEvalStruct verifies that a struct can be passed as the context and its
+// exported fields are accessible by name.
+func TestEvalStruct(t *testing.T) {
+	type person struct {
+		Name string
+		Age  int
+	}
+	ctx := person{Name: "Alice", Age: 30}
+	out, err := Eval(`Name`, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != "Alice" {
+		t.Fatalf("expected %q, got %v", "Alice", out)
+	}
+}
+
+// TestEvalFunc verifies that a func stored as a map value in the context
+// is invoked when called from an expression.
+func TestEvalFunc(t *testing.T) {
+	ctx := map[string]any{
+		"double": func(n int) int { return n * 2 },
+	}
+	out, err := Eval(`double(5)`, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != 10 {
+		t.Fatalf("expected %v, got %v", 10, out)
 	}
 }
 
