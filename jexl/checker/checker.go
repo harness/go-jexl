@@ -285,7 +285,7 @@ func (v *Checker) ident(node ast.Node, name string, strict, builtins bool) Natur
 		return nt
 	}
 	if builtins {
-		if fn, ok := v.config.Functions[name]; ok {
+		if fn, ok := v.config.Functions.Lookup(name); ok {
 			nt := v.config.Cache.FromType(fn.Type())
 			// TypeData carries the *runtime.Function so callNode
 			// can later route to checkFunction instead of the
@@ -1540,9 +1540,17 @@ func (v *Checker) newNode(node *ast.NewExpr) Nature {
 // is configured, it verifies the namespace exists; returns unknown
 // because the concrete return type is resolved by the registry at runtime.
 func (v *Checker) namespaceCallNode(node *ast.NamespaceCallExpr) Nature {
-	// Namespace::function() calls — validate the namespace
-	// exists in the registry but return unknown; the actual
-	// return type depends on the function looked up at runtime.
+	// Function namespace calls (e.g. base64.encode(...)) — look up the
+	// function directly and use the full type-checking path.
+	if v.config.Functions.HasNamespace(node.Namespace) {
+		if fn, ok := v.config.Functions.LookupNamespace(node.Namespace, node.Method); ok {
+			return v.checkFunction(fn, node, node.Args)
+		}
+		return v.error(node, "unknown function %s.%s", node.Namespace, node.Method)
+	}
+
+	// Registry namespace calls (e.g. MyClass::method(...)) — validate
+	// the namespace exists; return unknown since type is resolved at runtime.
 	if v.config.Registry != nil {
 		if _, ok := v.config.Registry.Lookup(node.Namespace); !ok {
 			return v.error(node, "unknown namespace %q", node.Namespace)

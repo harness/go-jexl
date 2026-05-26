@@ -192,11 +192,15 @@ func (p *parser) isNamespaceCall() bool {
 }
 
 func (p *parser) isKnownNamespace(name string) bool {
-	if p.config == nil || p.config.Registry == nil {
+	if p.config == nil {
 		return true
 	}
-	_, ok := p.config.Registry.Lookup(name)
-	return ok
+	if p.config.Registry != nil {
+		if _, ok := p.config.Registry.Lookup(name); ok {
+			return true
+		}
+	}
+	return p.config.Functions.HasNamespace(name)
 }
 
 func (p *parser) parseExpression(precedence int) ast.Node {
@@ -1246,6 +1250,19 @@ func (p *parser) parseSecondary() ast.Node {
 			if p.current.Is(token.Bracket, "(") {
 				node = p.parseCall(tok, []ast.Node{}, true)
 			} else if p.current.Is(token.Operator, ":") && p.isKnownNamespace(tok.Value) && p.isNamespaceCall() {
+				p.next()
+				methodToken := p.current
+				p.next()
+				node = p.createNode(&ast.NamespaceCallExpr{
+					Namespace: tok.Value,
+					Method:    methodToken.Value,
+					Args:      p.parseArguments([]ast.Node{}),
+				}, tok.Range)
+				if node == nil {
+					return nil
+				}
+				return p.parsePostfixExpression(node)
+			} else if p.current.Is(token.Operator, ".") && p.config != nil && p.config.Functions.HasNamespace(tok.Value) && p.isNamespaceCall() {
 				p.next()
 				methodToken := p.current
 				p.next()

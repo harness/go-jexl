@@ -7,23 +7,17 @@ import (
 )
 
 func main() {
-	// function defined via context
-	env := map[string]any{
-		"secrets": map[string]any{
-			"getValue": func(args ...any) (any, error) {
-				return "dummy-23e4567-e89b-12d3-a456-426614174000", nil
-			},
-		},
-	}
-
+	// function defined via function namespace
 	program, err := jexl.Compile(`secrets.getValue('account.token')`,
-		jexl.WithContext(env),
+		jexl.WithFunctionNamespace("secrets", "getValue", func(args ...any) (any, error) {
+			return "dummy-23e4567-e89b-12d3-a456-426614174000", nil
+		}),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	out, err := jexl.Run(program, env)
+	out, err := jexl.Run(program, nil)
 	if err != nil {
 		panic(err)
 	}

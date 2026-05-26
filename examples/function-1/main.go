@@ -14,7 +14,7 @@ func main() {
 	}
 
 	program, err := jexl.Compile(`shout(name)`,
-		jexl.WithFunction("shout", shout, func(string) string { return "" }),
+		jexl.WithFunction("shout", shout),
 		jexl.WithContext(map[string]any{"name": "alice"}),
 	)
 	if err != nil {

@@ -16,13 +16,203 @@ import (
 
 	"github.com/harness/go-jexl/jexl/coerce"
 
-	expr "github.com/harness/go-jexl/jexl"
+	"github.com/harness/go-jexl/jexl"
 	"github.com/harness/go-jexl/jexl/builtin"
 	"github.com/harness/go-jexl/jexl/classes"
 	javalang "github.com/harness/go-jexl/jexl/classes/java/lang"
 	javamath "github.com/harness/go-jexl/jexl/classes/java/math"
 	javautil "github.com/harness/go-jexl/jexl/classes/java/util"
 )
+
+// Test structure holds unit tests
+type Test struct {
+	ID          string         `json:"id"`
+	Category    string         `json:"category"`
+	Description string         `json:"description"`
+	Context     map[string]any `json:"context"`
+	Expr        string         `json:"expr"`
+	Result      any            `json:"expected"`
+	Error       string         `json:"error"`
+	Skip        bool           `json:"skip"`
+}
+
+func TestSpec(t *testing.T) {
+
+	data1, err1 := os.ReadFile("./testdata/integration.json")
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+
+	data2, err2 := os.ReadFile("./testdata/synthetic.json")
+	if err2 != nil {
+		t.Fatal(err2)
+	}
+
+	var cases1 []Test
+	if err := json.Unmarshal(data1, &cases1); err != nil {
+		t.Fatal(err)
+	}
+	var cases2 []Test
+	if err := json.Unmarshal(data2, &cases2); err != nil {
+		t.Fatal(err)
+	}
+	cases := append(cases1, cases2...)
+
+	for _, test_ := range cases {
+
+		t.Run(test_.ID, func(t *testing.T) {
+
+			if test_.Skip {
+				t.Skip()
+				return
+			}
+
+			opts := []jexl.Option{
+				// Custom classes
+				jexl.WithClass("Empty", emptyClass{}),
+				jexl.WithClass("Point", pointClass{}),
+				jexl.WithClass("org.apache.commons.jexl3.ConformanceTest$Empty", emptyClass{}),
+				jexl.WithClass("org.apache.commons.jexl3.ConformanceTest$Point", pointClass{}),
+
+				// Custom namespaces
+				jexl.WithNamespace("String", StringNS),
+				jexl.WithNamespace("Integer", IntegerNS),
+				jexl.WithNamespace("Math", javamath.MathClass),
+
+				// Custom functions
+				jexl.WithFunctionNamespace("secrets", "getValue", func(args ...any) (any, error) {
+					return "dummy-23e4567-e89b-12d3-a456-426614174000", nil
+				}),
+
+				// Custom builtin-functions (aliases to existing functions to match Harness jexl)
+				jexl.WithFunctionNamespace("json", "format", builtin.JSONMarshal),
+				jexl.WithFunctionNamespace("json", "stringify", builtin.JSONMarshal),
+				jexl.WithFunctionNamespace("json", "object", builtin.JSONUnmarshal),
+				jexl.WithFunctionNamespace("json", "select", builtin.JSONSelect),
+				jexl.WithFunctionNamespace("json", "list", builtin.JSONList),
+				jexl.WithFunctionNamespace("regex", "extract", builtin.RegexExtract),
+				jexl.WithFunctionNamespace("regex", "replace", builtin.ReplaceAll),
+				jexl.WithFunctionNamespace("regex", "match", builtin.Matches),
+				jexl.WithFunctionNamespace("datetime", "currentDate", builtin.CurrentDate),
+				jexl.WithFunctionNamespace("datetime", "currentTime", builtin.CurrentTime),
+				jexl.WithFunctionNamespace("datetime", "format", builtin.DateFormat),
+				jexl.WithFunctionNamespace("datetime", "plusMinutes", builtin.PlusMinutes),
+				jexl.WithFunctionNamespace("xml", "select", builtin.XMLSelect),
+				jexl.WithFunctionNamespace("base64", "encode", builtin.Base64Encode),
+				jexl.WithFunctionNamespace("base64", "decode", builtin.Base64Decode),
+
+				// Java standard library
+				jexl.WithClass("java.lang.Boolean", javalang.BooleanClass),
+				jexl.WithClass("java.lang.Byte", javalang.ByteClass),
+				jexl.WithClass("java.lang.Short", javalang.ShortClass),
+				jexl.WithClass("java.lang.Integer", javalang.IntegerClass),
+				jexl.WithClass("java.lang.Long", javalang.LongClass),
+				jexl.WithClass("java.lang.Double", javalang.DoubleClass),
+				jexl.WithClass("java.lang.Character", javalang.CharacterClass),
+				jexl.WithClass("java.lang.String", javalang.StringClass),
+				jexl.WithClass("java.lang.StringBuilder", javalang.StringBuilderClass),
+				jexl.WithClass("java.lang.StringBuffer", javalang.StringBufferClass),
+				jexl.WithClass("java.lang.Math", javamath.MathClass),
+				jexl.WithClass("java.math.BigInteger", javamath.BigIntegerClass),
+				jexl.WithClass("java.math.BigDecimal", javamath.BigDecimalClass),
+				jexl.WithClass("java.util.ArrayList", javautil.ArrayListClass),
+				jexl.WithClass("java.util.LinkedList", javautil.LinkedListClass),
+				jexl.WithClass("java.util.HashMap", javautil.HashMapClass),
+				jexl.WithClass("java.util.TreeMap", javautil.TreeMapClass),
+				jexl.WithClass("java.util.Stack", javautil.StackClass),
+			}
+
+			// add context to options
+			opts = append(opts, jexl.WithContext(test_.Context))
+
+			program, err := jexl.Compile(test_.Expr, opts...)
+			if err != nil {
+				if test_.Error == "" {
+					t.Error(err)
+					t.Logf("name: %s", test_.ID)
+					t.Logf("category: %s", test_.Category)
+					t.Logf("description: %s", test_.Description)
+					t.Logf("expression: %v", test_.Expr)
+					return
+				} else {
+					return // expect error
+				}
+			}
+
+			out, err := jexl.Run(program, test_.Context)
+			if err != nil {
+				if test_.Error == "" {
+					t.Error(err)
+					t.Logf("name: %s", test_.ID)
+					t.Logf("category: %s", test_.Category)
+					t.Logf("description: %s", test_.Description)
+					t.Logf("expression: %v", test_.Expr)
+					return
+				} else {
+					return // expect error
+				}
+			}
+
+			if test_.Error != "" {
+				t.Errorf("Expect error got %v", out)
+				t.Logf("name: %s", test_.ID)
+				t.Logf("category: %s", test_.Category)
+				t.Logf("description: %s", test_.Description)
+				t.Logf("expression: %v", test_.Expr)
+				return
+			}
+
+			// ensure equality
+			if !coerce.DeepEqual(test_.Result, out) {
+				t.Errorf("Unexpected result")
+				t.Logf("name: %s", test_.ID)
+				t.Logf("category: %s", test_.Category)
+				t.Logf("description: %s", test_.Description)
+				t.Logf("expression: %v", test_.Expr)
+				t.Logf("got: %v", out)
+				t.Logf("want: %v", test_.Result)
+				return
+			}
+
+		})
+	}
+
+}
+
+//
+// Custom Classes for synthetic tests
+//
+
+type pointClass struct{}
+
+func (pointClass) Call(method string, args ...any) (any, error) {
+	switch method {
+	case "new":
+		m := map[string]any{}
+		if len(args) >= 1 {
+			m["x"] = args[0]
+		}
+		if len(args) >= 2 {
+			m["y"] = args[1]
+		}
+		return m, nil
+	}
+	return nil, fmt.Errorf("Point.%s: undefined", method)
+}
+
+type emptyClass struct{}
+
+func (emptyClass) Call(method string, args ...any) (any, error) {
+	switch method {
+	case "new":
+		return map[string]any{}, nil
+	}
+	return nil, fmt.Errorf("Empty.%s: undefined", method)
+}
+
+//
+// Custom Classes for namespace unit tests
+//
 
 // stringNS is the String namespace used in spec tests.
 type stringNS struct{}
@@ -202,271 +392,9 @@ func (integerNS) Call(method string, args ...any) (any, error) {
 	return nil, fmt.Errorf("Integer.%s: undefined", method)
 }
 
-// pointClass constructs a map with x and y keys.
-type pointClass struct{}
-
-func (pointClass) Call(method string, args ...any) (any, error) {
-	switch method {
-	case "new":
-		m := map[string]any{}
-		if len(args) >= 1 {
-			m["x"] = args[0]
-		}
-		if len(args) >= 2 {
-			m["y"] = args[1]
-		}
-		return m, nil
-	}
-	return nil, fmt.Errorf("Point.%s: undefined", method)
-}
-
-// emptyClass constructs an empty map.
-type emptyClass struct{}
-
-func (emptyClass) Call(method string, args ...any) (any, error) {
-	switch method {
-	case "new":
-		return map[string]any{}, nil
-	}
-	return nil, fmt.Errorf("Empty.%s: undefined", method)
-}
-
 var (
 	// StringNS is the String namespace for spec tests.
 	StringNS classes.Object = stringNS{}
 	// IntegerNS is the Integer namespace for spec tests.
 	IntegerNS classes.Object = integerNS{}
 )
-
-type Test struct {
-	ID          string         `json:"id"`
-	Category    string         `json:"category"`
-	Description string         `json:"description"`
-	Context     map[string]any `json:"context"`
-	Expr        string         `json:"expr"`
-	Result      any            `json:"expected"`
-	Error       string         `json:"error"`
-	Skip        bool           `json:"skip"`
-}
-
-func TestSpec(t *testing.T) {
-
-	data1, err1 := os.ReadFile("./testdata/integration.json")
-	if err1 != nil {
-		t.Fatal(err1)
-	}
-
-	data2, err2 := os.ReadFile("./testdata/synthetic.json")
-	if err2 != nil {
-		t.Fatal(err2)
-	}
-
-	var cases1 []Test
-	if err := json.Unmarshal(data1, &cases1); err != nil {
-		t.Fatal(err)
-	}
-	var cases2 []Test
-	if err := json.Unmarshal(data2, &cases2); err != nil {
-		t.Fatal(err)
-	}
-	cases := append(cases1, cases2...)
-
-	for _, test_ := range cases {
-
-		t.Run(test_.ID, func(t *testing.T) {
-
-			if test_.Skip {
-				t.Skip()
-				return
-			}
-
-			opts := []expr.Option{
-				expr.WithClass("Point", pointClass{}),
-				expr.WithClass("org.apache.commons.jexl3.ConformanceTest$Point", pointClass{}),
-				expr.WithClass("Empty", emptyClass{}),
-				expr.WithClass("org.apache.commons.jexl3.ConformanceTest$Empty", emptyClass{}),
-				expr.WithClass("java.lang.Boolean", javalang.BooleanClass),
-				expr.WithClass("java.lang.Byte", javalang.ByteClass),
-				expr.WithClass("java.lang.Short", javalang.ShortClass),
-				expr.WithClass("java.lang.Integer", javalang.IntegerClass),
-				expr.WithClass("java.lang.Long", javalang.LongClass),
-				expr.WithClass("java.lang.Double", javalang.DoubleClass),
-				expr.WithClass("java.lang.Character", javalang.CharacterClass),
-				expr.WithClass("java.lang.String", javalang.StringClass),
-				expr.WithClass("java.lang.StringBuilder", javalang.StringBuilderClass),
-				expr.WithClass("java.lang.StringBuffer", javalang.StringBufferClass),
-				expr.WithClass("java.lang.Math", javamath.MathClass),
-				expr.WithClass("java.math.BigInteger", javamath.BigIntegerClass),
-				expr.WithClass("java.math.BigDecimal", javamath.BigDecimalClass),
-				expr.WithClass("java.util.ArrayList", javautil.ArrayListClass),
-				expr.WithClass("java.util.LinkedList", javautil.LinkedListClass),
-				expr.WithClass("java.util.HashMap", javautil.HashMapClass),
-				expr.WithClass("java.util.TreeMap", javautil.TreeMapClass),
-				expr.WithClass("java.util.Stack", javautil.StackClass),
-				expr.WithNamespace("String", StringNS),
-				expr.WithNamespace("Integer", IntegerNS),
-				expr.WithNamespace("Math", javamath.MathClass),
-			}
-
-			c := test_.Context
-			if c == nil {
-				c = map[string]any{}
-			}
-
-			// add common functions to context
-			c["secrets"] = map[string]any{
-				"getValue": func(args ...any) (any, error) {
-					return "dummy-23e4567-e89b-12d3-a456-426614174000", nil
-				},
-			}
-			c["json"] = map[string]any{
-				"format": func(args ...any) (any, error) {
-					if len(args) != 1 {
-						return nil, fmt.Errorf("json.format: expected 1 argument")
-					}
-					return builtin.JSONMarshal(args[0])
-				},
-				"stringify": func(args ...any) (any, error) {
-					if len(args) != 1 {
-						return nil, fmt.Errorf("json.stringify: expected 1 argument")
-					}
-					return builtin.JSONMarshal(args[0])
-				},
-				"object": func(args ...any) (any, error) {
-					if len(args) != 1 {
-						return nil, fmt.Errorf("json.object: expected 1 argument")
-					}
-					return builtin.JSONUnmarshal(args[0])
-				},
-				"select": func(args ...any) (any, error) {
-					if len(args) != 2 {
-						return nil, fmt.Errorf("json.select: expected 2 arguments")
-					}
-					return builtin.JSONSelect(args[0], args[1])
-				},
-				"list": func(args ...any) (any, error) {
-					if len(args) != 2 {
-						return nil, fmt.Errorf("json.list: expected 2 arguments")
-					}
-					return builtin.JSONList(args[0], args[1])
-				},
-			}
-			c["regex"] = map[string]any{
-				"extract": func(args ...any) (any, error) {
-					if len(args) != 2 {
-						return nil, fmt.Errorf("regex.extract: expected 2 arguments")
-					}
-					return builtin.RegexExtract(args[0], args[1]), nil
-				},
-				"replace": func(args ...any) (any, error) {
-					if len(args) != 3 {
-						return nil, fmt.Errorf("regex.replace: expected 3 arguments")
-					}
-					return builtin.ReplaceAll(args[2], args[0], args[1]), nil
-				},
-				"match": func(args ...any) (any, error) {
-					if len(args) != 2 {
-						return nil, fmt.Errorf("regex.match: expected 2 arguments")
-					}
-					return builtin.Matches(args[1], args[0]), nil
-				},
-			}
-			c["datetime"] = map[string]any{
-				"currentDate": func(args ...any) (any, error) {
-					return builtin.CurrentDate(), nil
-				},
-				"currentTime": func(args ...any) (any, error) {
-					return builtin.CurrentTime(), nil
-				},
-				"format": func(args ...any) (any, error) {
-					if len(args) != 2 {
-						return nil, fmt.Errorf("datetime.format: expected 2 arguments")
-					}
-					return builtin.DateFormat(args[1], args[0]), nil
-				},
-				"plusMinutes": func(args ...any) (any, error) {
-					if len(args) != 2 {
-						return nil, fmt.Errorf("datetime.plusMinutes: expected 2 arguments")
-					}
-					return builtin.PlusMinutes(args[0], args[1]), nil
-				},
-			}
-			c["xml"] = map[string]any{
-				"select": func(args ...any) (any, error) {
-					if len(args) != 2 {
-						return nil, fmt.Errorf("xml.select: expected 2 arguments")
-					}
-					return builtin.XMLSelect(args[0], args[1])
-				},
-			}
-			c["base64"] = map[string]any{
-				"encode": func(args ...any) (any, error) {
-					if len(args) != 1 {
-						return nil, fmt.Errorf("base64.encode: expected 1 argument")
-					}
-					return builtin.Base64Encode(args[0]), nil
-				},
-				"decode": func(args ...any) (any, error) {
-					if len(args) != 1 {
-						return nil, fmt.Errorf("base64.decode: expected 1 argument")
-					}
-					return builtin.Base64Decode(args[0])
-				},
-			}
-
-			// add context to options
-			opts = append(opts, expr.WithContext(test_.Context))
-
-			program, err := expr.Compile(test_.Expr, opts...)
-			if err != nil {
-				if test_.Error == "" {
-					t.Error(err)
-					t.Logf("name: %s", test_.ID)
-					t.Logf("category: %s", test_.Category)
-					t.Logf("description: %s", test_.Description)
-					t.Logf("expression: %v", test_.Expr)
-					return
-				} else {
-					return // expect error
-				}
-			}
-
-			out, err := expr.Run(program, test_.Context)
-			if err != nil {
-				if test_.Error == "" {
-					t.Error(err)
-					t.Logf("name: %s", test_.ID)
-					t.Logf("category: %s", test_.Category)
-					t.Logf("description: %s", test_.Description)
-					t.Logf("expression: %v", test_.Expr)
-					return
-				} else {
-					return // expect error
-				}
-			}
-
-			if test_.Error != "" {
-				t.Errorf("Expect error got %v", out)
-				t.Logf("name: %s", test_.ID)
-				t.Logf("category: %s", test_.Category)
-				t.Logf("description: %s", test_.Description)
-				t.Logf("expression: %v", test_.Expr)
-				return
-			}
-
-			// ensure equality
-			if !coerce.DeepEqual(test_.Result, out) {
-				t.Errorf("Unexpected result")
-				t.Logf("name: %s", test_.ID)
-				t.Logf("category: %s", test_.Category)
-				t.Logf("description: %s", test_.Description)
-				t.Logf("expression: %v", test_.Expr)
-				t.Logf("got: %v", out)
-				t.Logf("want: %v", test_.Result)
-				return
-			}
-
-		})
-	}
-
-}

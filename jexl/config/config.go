@@ -12,8 +12,8 @@ import (
 	"github.com/harness/go-jexl/jexl/builtin"
 	"github.com/harness/go-jexl/jexl/checker/nature"
 	"github.com/harness/go-jexl/jexl/classes"
+	"github.com/harness/go-jexl/jexl/functions"
 	"github.com/harness/go-jexl/jexl/internal/deref"
-	"github.com/harness/go-jexl/jexl/vm/runtime"
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 type Config struct {
 	Context       nature.Nature
 	Cache         nature.Cache
-	Functions     map[string]*runtime.Function
+	Functions     *functions.Registry
 	MaxIterations uint
 	MaxMemory     uint
 	MaxNodes      uint
@@ -48,11 +48,11 @@ func New() *Config {
 		MaxNodes:      MaxNodes,
 		MaxMemory:     MaxMemory,
 		MaxIterations: MaxIterations,
-		Functions:     make(map[string]*runtime.Function, len(builtin.Funcs)),
+		Functions:     functions.New(),
 		Registry:      classes.New(),
 	}
 	for name, fn := range builtin.Funcs {
-		c.Functions[name] = fn
+		c.Functions.Register(name, fn)
 	}
 	return c
 }

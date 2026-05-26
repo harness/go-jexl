@@ -11,6 +11,7 @@ import (
 
 	"github.com/harness/go-jexl/jexl/classes"
 	"github.com/harness/go-jexl/jexl/config"
+	"github.com/harness/go-jexl/jexl/functions"
 	"github.com/harness/go-jexl/jexl/vm/runtime"
 )
 
@@ -36,24 +37,35 @@ func WithContext(ctx any) Option {
 
 // WithFunction returns an option to register a named
 // function for use in expressions.
-func WithFunction(name string, fn func(params ...any) (any, error), types ...any) Option {
+func WithFunction(name string, fn any) Option {
 	return func(c *config.Config) {
-		ts := make([]reflect.Type, len(types))
-		for i, t := range types {
-			t := reflect.TypeOf(t)
-			if t.Kind() == reflect.Ptr {
-				t = t.Elem()
-			}
-			if t.Kind() != reflect.Func {
-				panic(fmt.Sprintf("jexl: type of %s is not a function", name))
-			}
-			ts[i] = t
+		t := reflect.TypeOf(fn)
+		if t == nil || t.Kind() != reflect.Func {
+			panic(fmt.Sprintf("jexl: %s is not a function", name))
 		}
-		c.Functions[name] = &runtime.Function{
+		wrapped, typ := functions.Wrap(fn)
+		c.Functions.Register(name, &runtime.Function{
 			Name:  name,
-			Func:  fn,
-			Types: ts,
+			Func:  wrapped,
+			Types: []reflect.Type{typ},
+		})
+	}
+}
+
+// WithFunctionNamespace registers a single function under a dot-separated
+// namespace, making it callable as ns.method(...) in expressions.
+func WithFunctionNamespace(ns, method string, fn any) Option {
+	return func(c *config.Config) {
+		t := reflect.TypeOf(fn)
+		if t == nil || t.Kind() != reflect.Func {
+			panic(fmt.Sprintf("jexl: %s.%s is not a function", ns, method))
 		}
+		wrapped, typ := functions.Wrap(fn)
+		c.Functions.RegisterNamespace(ns, method, &runtime.Function{
+			Name:  ns + "." + method,
+			Types: []reflect.Type{typ},
+			Func:  wrapped,
+		})
 	}
 }
 

@@ -7,6 +7,7 @@ package builtin
 import (
 	"reflect"
 
+	"github.com/harness/go-jexl/jexl/functions"
 	"github.com/harness/go-jexl/jexl/vm/runtime"
 )
 
@@ -122,47 +123,11 @@ func init() {
 
 	Funcs = make(map[string]*runtime.Function, len(funcs))
 	for name, fn := range funcs {
-		rv := reflect.ValueOf(fn)
-		t := rv.Type()
+		wrapped, t := functions.Wrap(fn)
 		Funcs[name] = &runtime.Function{
 			Name:  name,
 			Types: []reflect.Type{t},
-			Func:  wrapFunc(rv, t),
+			Func:  wrapped,
 		}
-	}
-}
-
-// wrapFunc adapts a typed Go function into the runtime.Function
-// signature the vm expects. Arguments are coerced to the declared
-// parameter types; variadic tails are unpacked element-wise.
-func wrapFunc(rv reflect.Value, t reflect.Type) func(...any) (any, error) {
-	isVariadic := t.IsVariadic()
-	numIn := t.NumIn()
-	return func(args ...any) (any, error) {
-		in := make([]reflect.Value, len(args))
-		for i, arg := range args {
-			var paramType reflect.Type
-			if isVariadic && i >= numIn-1 {
-				paramType = t.In(numIn - 1).Elem()
-			} else {
-				paramType = t.In(i)
-			}
-			if arg == nil {
-				in[i] = reflect.Zero(paramType)
-			} else {
-				v := reflect.ValueOf(arg)
-				if v.Type().ConvertibleTo(paramType) && v.Type() != paramType {
-					v = v.Convert(paramType)
-				}
-				in[i] = v
-			}
-		}
-		out := rv.Call(in)
-		if len(out) == 2 {
-			if err, ok := out[1].Interface().(error); ok && err != nil {
-				return nil, err
-			}
-		}
-		return out[0].Interface(), nil
 	}
 }

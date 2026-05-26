@@ -31,12 +31,21 @@ func TestWithStrict(t *testing.T) {
 	}
 }
 
-// Ensure function is registered.
-func TestWithFunction(t *testing.T) {
+// Ensure a variadic any function is registered.
+func TestWithFunction_variadicAny(t *testing.T) {
 	conf := config.New()
 	fn := func(args ...any) (any, error) { return nil, nil }
-	WithFunction("double", fn, func(int) int { return 0 })(conf)
-	if _, ok := conf.Functions["double"]; !ok {
+	WithFunction("double", fn)(conf)
+	if _, ok := conf.Functions.Lookup("double"); !ok {
+		t.Fatal("expected double to be registered")
+	}
+}
+
+// Ensure a typed Go function is registered via reflection.
+func TestWithFunction_typed(t *testing.T) {
+	conf := config.New()
+	WithFunction("double", func(x int) int { return x * 2 })(conf)
+	if _, ok := conf.Functions.Lookup("double"); !ok {
 		t.Fatal("expected double to be registered")
 	}
 }
@@ -48,8 +57,7 @@ func TestWithFunctionPanic(t *testing.T) {
 			t.Fatal("expected panic for non-function type")
 		}
 	}()
-	fn := func(args ...any) (any, error) { return nil, nil }
-	WithFunction("test", fn, 42)(config.New())
+	WithFunction("test", 42)(config.New())
 }
 
 // Ensure the max nodes are configured.
@@ -94,5 +102,15 @@ func TestWithNamespace(t *testing.T) {
 	WithNamespace("Math", math.MathClass)(conf)
 	if _, ok := conf.Registry.Lookup("Math"); !ok {
 		t.Fatal("expected Math to be registered")
+	}
+}
+
+// Ensure function namespace is registered.
+func TestWithFunctionNamespace(t *testing.T) {
+	conf := config.New()
+	fn := func(args ...any) (any, error) { return "hello " + args[0].(string), nil }
+	WithFunctionNamespace("greet", "hello", fn)(conf)
+	if _, ok := conf.Functions.LookupNamespace("greet", "hello"); !ok {
+		t.Fatal("expected greet.hello to be registered")
 	}
 }

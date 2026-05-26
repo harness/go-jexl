@@ -1063,7 +1063,7 @@ func (c *compiler) CallNode(node *ast.CallExpr) {
 	// Named builtin from config.Functions.
 	if ident, ok := node.Callee.(*ast.Ident); ok {
 		if c.config != nil {
-			if fn, ok := c.config.Functions[ident.Value]; ok {
+			if fn, ok := c.config.Functions.Lookup(ident.Value); ok {
 				c.emitFunction(fn, len(node.Arguments))
 				return
 			}
@@ -1962,13 +1962,20 @@ func (c *compiler) NewNode(node *ast.NewExpr) {
 func (c *compiler) NamespaceCallNode(node *ast.NamespaceCallExpr) {
 	ns := node.Namespace
 	method := node.Method
-	obj, _ := c.config.Registry.Lookup(ns)
 
 	for _, arg := range node.Args {
 		c.compile(arg)
 		c.derefInNeeded(arg)
 	}
 
+	// Function namespace (e.g. base64.encode) — dispatch directly.
+	if fn, ok := c.config.Functions.LookupNamespace(ns, method); ok {
+		c.emitFunction(fn, len(node.Args))
+		return
+	}
+
+	// Registry namespace (e.g. MyClass::method) — dispatch via registry.
+	obj, _ := c.config.Registry.Lookup(ns)
 	rfn := &runtime.Function{
 		Name: ns + ":" + method,
 		Func: func(args ...any) (any, error) { return obj.Call(method, args...) },
