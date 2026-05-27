@@ -66,6 +66,23 @@ invalid operation: + (mismatched types string and int) (1:8)
  | .......^
 ```
 
+## Fast Path
+
+For simple proprty access we have a zero-allocation fast evaluator. Use it when you know the expression is a simple property chain.
+
+```go
+out, err := jexl.EvalPath("trigger.payload.crNumber", env)
+```
+
+The function returns sentinel error `ErrNotPropertyPath`if the expression is not a plain property path. Use this to fall through to `Eval` for mixed workloads:
+
+```go
+out, err := jexl.EvalPath(expr, env)
+if errors.Is(err, jexl.ErrNotPropertyPath) {
+    out, err = jexl.Eval(expr, env)
+}
+```
+
 ## Templates
 
 The `template` package evaluates JEXL expressions embedded in a string, replacing each `<+expr>` with its result.

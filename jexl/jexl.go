@@ -6,6 +6,8 @@
 package jexl
 
 import (
+	"errors"
+
 	"github.com/harness/go-jexl/jexl/checker"
 	"github.com/harness/go-jexl/jexl/compiler"
 	"github.com/harness/go-jexl/jexl/config"
@@ -60,4 +62,19 @@ func Eval(input string, env any) (any, error) {
 	}
 
 	return output, nil
+}
+
+// ErrNotPropertyPath is a sentinel error returned if an
+// expression is not a property path.
+var ErrNotPropertyPath = errors.New("expression is not a property path")
+
+// EvalPath evaluates a simple dot-separated property path
+// against env. Returns ErrNotPropertyPath if the expression
+// is not a pure property path.
+func EvalPath(input string, env any) (any, error) {
+	if !isPropertyPath(input) {
+		return nil, ErrNotPropertyPath
+	} else {
+		return evalPath(env, input)
+	}
 }
