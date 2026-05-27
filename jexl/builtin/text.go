@@ -7,6 +7,7 @@ package builtin
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/harness/go-jexl/jexl/coerce"
@@ -341,4 +342,19 @@ func SubstringBefore(v any, delim any) string {
 		return s
 	}
 	return before
+}
+
+// Reverse returns v with its Unicode code points in reverse order.
+func Reverse(v any) string {
+	runes := []rune(coerce.ToString(v))
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
+}
+
+// Quote returns v as a double-quoted Go string literal with special
+// characters escaped.
+func Quote(v any) string {
+	return strconv.Quote(coerce.ToString(v))
 }

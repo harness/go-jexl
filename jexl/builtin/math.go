@@ -77,3 +77,33 @@ func Round(v any) float64 {
 func Sqrt(v any) float64 {
 	return math.Sqrt(coerce.ToFloat64(v))
 }
+
+// BitAnd returns the bitwise AND of a and b.
+func BitAnd(a any, b any) int64 {
+	return coerce.ToInt64(a) & coerce.ToInt64(b)
+}
+
+// BitOr returns the bitwise OR of a and b.
+func BitOr(a any, b any) int64 {
+	return coerce.ToInt64(a) | coerce.ToInt64(b)
+}
+
+// BitXor returns the bitwise XOR of a and b.
+func BitXor(a any, b any) int64 {
+	return coerce.ToInt64(a) ^ coerce.ToInt64(b)
+}
+
+// BitNot returns the bitwise NOT of v.
+func BitNot(v any) int64 {
+	return ^coerce.ToInt64(v)
+}
+
+// BitShiftLeft returns a shifted left by n bits.
+func BitShiftLeft(a any, n any) int64 {
+	return coerce.ToInt64(a) << coerce.ToUint64(n)
+}
+
+// BitShiftRight returns a shifted right by n bits.
+func BitShiftRight(a any, n any) int64 {
+	return coerce.ToInt64(a) >> coerce.ToUint64(n)
+}

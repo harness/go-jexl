@@ -106,3 +106,45 @@ func TestSqrt_basic(t *testing.T) {
 		t.Fatal("expected 3.0")
 	}
 }
+
+// Ensure BitAnd returns the bitwise AND of two integers.
+func TestBitAnd_basic(t *testing.T) {
+	if BitAnd(0b1010, 0b1100) != 0b1000 {
+		t.Fatal("expected 8")
+	}
+}
+
+// Ensure BitOr returns the bitwise OR of two integers.
+func TestBitOr_basic(t *testing.T) {
+	if BitOr(0b1010, 0b1100) != 0b1110 {
+		t.Fatal("expected 14")
+	}
+}
+
+// Ensure BitXor returns the bitwise XOR of two integers.
+func TestBitXor_basic(t *testing.T) {
+	if BitXor(0b1010, 0b1100) != 0b0110 {
+		t.Fatal("expected 6")
+	}
+}
+
+// Ensure BitNot returns the bitwise NOT of an integer.
+func TestBitNot_basic(t *testing.T) {
+	if BitNot(0) != -1 {
+		t.Fatal("expected -1")
+	}
+}
+
+// Ensure BitShiftLeft shifts bits left by n positions.
+func TestBitShiftLeft_basic(t *testing.T) {
+	if BitShiftLeft(1, 3) != 8 {
+		t.Fatal("expected 8")
+	}
+}
+
+// Ensure BitShiftRight shifts bits right by n positions.
+func TestBitShiftRight_basic(t *testing.T) {
+	if BitShiftRight(8, 3) != 1 {
+		t.Fatal("expected 1")
+	}
+}

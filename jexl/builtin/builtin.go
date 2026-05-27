@@ -31,6 +31,12 @@ func init() {
 		"pow":        Pow,
 		"round":      Round,
 		"sqrt":       Sqrt,
+		"bitAnd":        BitAnd,
+		"bitOr":         BitOr,
+		"bitXor":        BitXor,
+		"bitNot":        BitNot,
+		"bitShiftLeft":  BitShiftLeft,
+		"bitShiftRight": BitShiftRight,
 
 		// text
 		"charAt":              CharAt,
@@ -68,6 +74,8 @@ func init() {
 		"trimLeft":            TrimLeft,
 		"trimRight":           TrimRight,
 		"substringBefore":     SubstringBefore,
+		"reverse":             Reverse,
+		"quote":               Quote,
 
 		// convert
 		"booleanValue": BooleanValue,

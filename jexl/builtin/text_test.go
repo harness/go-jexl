@@ -308,3 +308,31 @@ func TestSubstringBefore_notFound(t *testing.T) {
 		t.Fatal("expected foobar")
 	}
 }
+
+// Ensure Reverse returns the string with characters in reverse order.
+func TestReverse_basic(t *testing.T) {
+	if Reverse("hello") != "olleh" {
+		t.Fatal("expected olleh")
+	}
+}
+
+// Ensure Reverse handles multibyte Unicode characters correctly.
+func TestReverse_unicode(t *testing.T) {
+	if Reverse("héllo") != "olléh" {
+		t.Fatal("expected olléh")
+	}
+}
+
+// Ensure Quote wraps the string in double quotes and escapes special characters.
+func TestQuote_basic(t *testing.T) {
+	if Quote("hello") != `"hello"` {
+		t.Fatal(`expected "hello"`)
+	}
+}
+
+// Ensure Quote escapes newlines and other special characters.
+func TestQuote_special(t *testing.T) {
+	if Quote("line1\nline2") != `"line1\nline2"` {
+		t.Fatal(`expected "line1\nline2"`)
+	}
+}
